@@ -1,0 +1,1398 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>286×146mm 横版双图印刷画布工具</title>
+<style>
+  :root {
+    color-scheme: light;
+    --ink: #111827;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --paper: #ffffff;
+    --panel: rgba(255,255,255,.92);
+    --accent: #007aff;
+    --danger: #ff3b30;
+    --shadow: 0 16px 42px rgba(15,23,42,.10);
+    --soft: 0 5px 18px rgba(15,23,42,.06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #f5f5f7;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Arial, sans-serif;
+  }
+  button, input, select, textarea { font: inherit; }
+  button {
+    border: 1px solid rgba(209,213,219,.95);
+    border-radius: 999px;
+    min-height: 30px;
+    padding: 0 10px;
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+    transition: transform .12s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  button:hover { transform: translateY(-1px); border-color: rgba(0,122,255,.42); background: #f9fafb; }
+  button.primary { color: #fff; background: #007aff; border-color: #007aff; }
+  button.danger { color: var(--danger); border-color: rgba(255,59,48,.28); background: #fff5f5; }
+  button.active { border-color: rgba(0,122,255,.5); background: #eaf3ff; }
+  input, select, textarea {
+    width: 100%;
+    border: 1px solid rgba(209,213,219,.95);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--ink);
+    min-width: 0;
+  }
+  input, select { height: 31px; padding: 0 8px; font-size: 12px; }
+  input[type="color"] { padding: 2px; min-width: 42px; width: 42px; }
+  input[type="checkbox"] { width: auto; height: auto; }
+  input[type="file"] { display: none; }
+  textarea { min-height: 64px; padding: 8px; resize: vertical; line-height: 1.35; font-size: 12px; }
+  label { color: var(--muted); font-size: 11px; }
+  .app { display: grid; grid-template-columns: 316px minmax(0, 1fr); min-height: 100vh; }
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: auto;
+    border-right: 1px solid var(--line);
+    background: rgba(255,255,255,.88);
+    backdrop-filter: blur(14px);
+    padding: 10px;
+  }
+  .brand { display: grid; gap: 4px; padding: 4px 4px 8px; }
+  .brand h1 { margin: 0; font-size: 15px; line-height: 1.15; }
+  .brand p { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.35; }
+  .quick { display: grid; gap: 8px; padding: 8px; border: 1px solid var(--line); border-radius: 18px; background: #fff; box-shadow: var(--soft); }
+  .quick-row, .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .quick-row button, .row button { flex: 0 0 auto; }
+  .page-list { display: grid; gap: 6px; max-height: 190px; overflow: auto; padding-right: 2px; }
+  .page-button {
+    width: 100%;
+    border-radius: 14px;
+    padding: 8px 9px;
+    text-align: left;
+    min-height: auto;
+    display: grid;
+    gap: 3px;
+    cursor: pointer;
+  }
+  .page-button strong { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .page-button span { color: var(--muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .page-button.dragging { opacity: .45; }
+  details.section {
+    margin-top: 8px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--panel);
+    box-shadow: var(--soft);
+    overflow: visible;
+  }
+  details.section > summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  details.section > summary::-webkit-details-marker { display: none; }
+  details.section > summary::after { content: "⌄"; color: var(--muted); transition: transform .15s; }
+  details.section:not([open]) > summary::after { transform: rotate(-90deg); }
+  .panel { padding: 0 10px 10px; display: grid; gap: 8px; }
+  .field { display: grid; gap: 4px; min-width: 0; position: relative; }
+  .mini { display: grid; grid-template-columns: minmax(0,1fr) 72px; gap: 6px; align-items: end; }
+  .two { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
+  .three { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; }
+  .unit-row { display: grid; grid-template-columns: minmax(0,1fr) 84px; gap: 6px; align-items: end; }
+  .check { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; line-height: 1.35; }
+  .hint { color: var(--muted); font-size: 11px; line-height: 1.35; }
+  .hex-input { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace; letter-spacing: .01em; }
+  .hex-input.invalid { border-color: var(--danger); background: #fff4f2; }
+  .xkcd-suggestions {
+    position: absolute;
+    z-index: 100;
+    left: 0;
+    right: 0;
+    top: calc(100% + 5px);
+    max-height: 230px;
+    overflow: auto;
+    border: 1px solid rgba(209,213,219,.95);
+    border-radius: 14px;
+    background: rgba(255,255,255,.98);
+    box-shadow: 0 14px 30px rgba(15,23,42,.14);
+    padding: 5px;
+  }
+  .xkcd-suggestions.hidden { display: none; }
+  .xkcd-option {
+    width: 100%;
+    min-height: 32px;
+    padding: 6px 7px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    display: grid;
+    grid-template-columns: 20px minmax(0,1fr) auto;
+    gap: 7px;
+    align-items: start;
+    text-align: left;
+    font-size: 11px;
+    white-space: normal;
+  }
+  .xkcd-option:hover { transform: none; background: #eef6ff; }
+  .xkcd-swatch { width: 16px; height: 16px; border-radius: 5px; border: 1px solid rgba(17,24,39,.16); margin-top: 1px; }
+  .xkcd-name { white-space: normal; line-height: 1.25; overflow: visible; color: var(--ink); }
+  .xkcd-hex { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace; font-size: 10px; }
+  .stage-shell { min-width: 0; display: grid; grid-template-rows: auto 1fr; }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    min-height: 48px;
+    padding: 10px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255,255,255,.82);
+    backdrop-filter: blur(14px);
+  }
+  .status { margin-left: auto; color: var(--muted); font-size: 11px; max-width: 430px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .workspace {
+    min-width: 0;
+    padding: 18px;
+    display: grid;
+    gap: 18px;
+    justify-items: center;
+    align-content: start;
+    background:
+      linear-gradient(45deg, rgba(180,190,196,.12) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(180,190,196,.12) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(180,190,196,.12) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(180,190,196,.12) 75%);
+    background-size: 24px 24px;
+    background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+  }
+  .preview-card, .overview-card {
+    width: min(100%, 1080px);
+    border: 1px solid rgba(209,213,219,.82);
+    border-radius: 24px;
+    background: rgba(255,255,255,.96);
+    box-shadow: var(--shadow);
+    padding: 14px;
+  }
+  .preview-stage {
+    position: relative;
+    width: min(100%, 980px);
+    aspect-ratio: 286 / 146;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid rgba(17,24,39,.12);
+    border-radius: 20px;
+  }
+  .preview-stage.background-editing { cursor: move; box-shadow: inset 0 0 0 3px rgba(0,122,255,.18); }
+  .preview-stage.background-editing .preview-bg { pointer-events: auto; }
+  .preview-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; user-select: none; transform-origin: center center; will-change: transform; }
+  .photo-frame {
+    position: absolute;
+    z-index: 4;
+    overflow: hidden;
+    background: rgba(255,255,255,.58);
+    display: grid;
+    place-items: center;
+    cursor: grab;
+    box-sizing: border-box;
+  }
+  .photo-frame.dragging { cursor: grabbing; }
+  .photo-frame img { width: 100%; height: 100%; display: block; pointer-events: none; user-select: none; }
+  .photo-placeholder { color: var(--muted); text-align: center; font-weight: 700; font-size: clamp(10px, 1.5vw, 18px); line-height: 1.25; padding: 8px; }
+  .text-box {
+    position: absolute;
+    z-index: 6;
+    overflow: hidden;
+    outline: 1px dashed rgba(17,24,39,.28);
+    background-clip: padding-box;
+  }
+  .text-box.active { outline: 2px solid rgba(0,122,255,.58); box-shadow: 0 0 0 3px rgba(0,122,255,.12); }
+  .text-content { width: 100%; height: 100%; min-width: 0; outline: none; overflow: hidden; cursor: text; user-select: text; display: block; padding: 6px; white-space: pre-wrap; word-break: break-word; }
+  .text-content:empty::before { content: attr(data-placeholder); color: rgba(107,114,128,.72); pointer-events: none; }
+  textarea::placeholder { color: rgba(107,114,128,.72); }
+  .move-handle, .resize-handle { position: absolute; background: rgba(0,122,255,.86); z-index: 3; }
+  .move-handle { left: 0; top: 0; width: 15px; height: 15px; border-radius: 0 0 8px 0; cursor: ns-resize; }
+  .resize-handle { right: 0; bottom: 0; width: 15px; height: 15px; border-radius: 8px 0 0 0; cursor: nwse-resize; }
+  .guide-bleed, .guide-center { position: absolute; pointer-events: none; z-index: 9; }
+  .guide-bleed { border: 2px dashed rgba(255,59,48,.86); }
+  .guide-center { top: 0; bottom: 0; left: 50%; border-left: 2px dashed rgba(0,122,255,.84); }
+  .guide-label { position: absolute; z-index: 10; color: rgba(255,59,48,.94); background: rgba(255,255,255,.7); font-size: 11px; padding: 2px 5px; border-radius: 999px; pointer-events: none; }
+  .center-label { color: rgba(0,122,255,.9); transform: translateX(-50%); }
+  .meta { display: grid; gap: 4px; padding: 10px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+  .meta strong { color: var(--ink); }
+  .canvas-name-button { justify-self: start; border-radius: 12px; padding: 5px 9px; min-height: 28px; font-weight: 700; text-align: left; }
+  .overview-card { display: grid; gap: 12px; box-shadow: var(--soft); }
+  .overview-card h2 { margin: 0; font-size: 15px; }
+  .overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 12px; }
+  .overview-item { border: 1px solid rgba(209,213,219,.95); border-radius: 18px; background: #fff; overflow: hidden; box-shadow: var(--soft); }
+  .overview-item.active { border-color: rgba(0,122,255,.48); box-shadow: 0 0 0 3px rgba(0,122,255,.10), var(--soft); }
+  .overview-item.dragging { opacity: .5; }
+  .overview-thumb-wrap { padding: 10px; background: #f9fafb; }
+  .overview-thumb { width: 100%; aspect-ratio: 286/146; object-fit: contain; display: block; background: white; border-radius: 12px; border: 1px solid rgba(209,213,219,.7); }
+  .overview-placeholder { width: 100%; aspect-ratio: 286/146; display: grid; place-items: center; color: var(--muted); border: 1px dashed rgba(107,114,128,.45); border-radius: 12px; font-size: 11px; }
+  .overview-body { padding: 10px; display: grid; gap: 8px; }
+  .overview-title { display: grid; gap: 3px; font-size: 11px; color: var(--muted); }
+  .overview-title strong { color: var(--ink); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .overview-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  @media (max-width: 960px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    .status { margin-left: 0; width: 100%; white-space: normal; }
+    .workspace { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>286×146mm 横版双图画布</h1>
+      <p>300dpi，3mm 出血线。图片左右对称；可导出最高分辨率 PNG/ZIP/PDF。</p>
+    </div>
+    <div class="quick">
+      <div class="quick-row">
+        <button class="primary" id="newCanvas" type="button">新建</button>
+        <button id="duplicateCanvas" type="button">复制当前</button>
+        <button class="danger" id="deleteCanvas" type="button">删除</button>
+      </div>
+      <div class="page-list" id="pageList"></div>
+      <div class="hint">当前画布列表固定在这里。可拖拽排序，ZIP 按此顺序导出。</div>
+    </div>
+
+    <details class="section">
+      <summary>背景与辅助线</summary>
+      <div class="panel">
+        <input id="backgroundInput" type="file" accept="image/*">
+        <div class="row"><button id="uploadBackground" type="button">上传背景</button><button id="clearBackground" type="button">清除背景</button><button id="toggleBackgroundEdit" type="button" title="默认锁定，打开后才可拖动或滚轮缩放背景">背景编辑：锁定</button><button id="resetBackgroundView" type="button">背景复位</button><button id="applyBackgroundAll" type="button">背景应用全部</button></div>
+        <div class="field"><label for="backgroundColor">背景底色</label><input id="backgroundColor" type="color" value="#ffffff"></div>
+        <div class="hint" id="backgroundReadout">背景编辑默认锁定。点击“背景编辑：解锁”后，才可在预览区空白处拖动背景或滚轮缩放。</div>
+        <label class="check"><input id="showGuides" type="checkbox" checked> 预览显示出血线和中线</label>
+        <div class="hint" id="canvasReadout"></div>
+      </div>
+    </details>
+
+    <details class="section" open>
+      <summary>双正方形图片</summary>
+      <div class="panel">
+        <input id="leftInput" type="file" accept="image/*"><input id="rightInput" type="file" accept="image/*">
+        <div class="row"><button id="uploadLeft" type="button">上传左图</button><button id="uploadRight" type="button">上传右图</button><button id="resetLayout" type="button">位置复位</button></div>
+        <div class="field"><label for="imageUnitMode">图片位置 / 大小单位</label><select id="imageUnitMode"><option value="mm">毫米 mm</option><option value="px">像素 px</option><option value="pct">百分比 %</option></select></div>
+        <div class="two">
+          <div class="field"><label for="imageSizeMM">同步图片边长</label><input id="imageSizeMM" type="number" min="16" max="140" step="0.1" value="88"></div>
+          <div class="field"><label for="imageTopGapMM">图片距上出血线</label><input id="imageTopGapMM" type="number" min="0" max="120" step="0.1" value="10"></div>
+        </div>
+        <div class="field"><label for="imageFit">图框内图片方式</label><select id="imageFit"><option value="cover">填满正方形 / 裁剪</option><option value="contain">显示完整图片</option></select></div>
+        <label class="check"><input id="borderAuto" type="checkbox" checked> 边框颜色自动取画布最深像素</label>
+        <div class="row"><button id="pickDarkest" type="button">重新取最深色</button></div>
+        <div class="field"><label for="borderColorText">圆角框颜色</label><div class="row"><input id="borderColor" type="color" value="#111827"><input id="borderColorText" class="hex-input" type="text" value="#111827" placeholder="hex 或 XKCD 颜色" spellcheck="false" autocomplete="off"></div><div class="xkcd-suggestions hidden" id="borderColorSuggestions"></div></div>
+        <div class="field"><label for="borderUnitMode">边框粗细 / 圆角单位</label><select id="borderUnitMode"><option value="px">像素 px</option><option value="mm">毫米 mm</option><option value="pct">百分比 %</option></select></div>
+        <div class="two"><div class="field"><label for="borderWidthPx">边框粗细</label><input id="borderWidthPx" type="number" min="0" max="160" step="1" value="12"></div><div class="field"><label for="borderRadiusPx">圆角</label><input id="borderRadiusPx" type="number" min="0" max="420" step="1" value="36"></div></div>
+        <div class="row"><button id="applyLayoutAll" type="button">图片布局应用全部</button></div>
+        <div class="hint" id="layoutReadout"></div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary>左右文本框</summary>
+      <div class="panel">
+        <div class="field"><label for="leftTextInput">左图下方文字</label><textarea id="leftTextInput" placeholder="左图说明文字"></textarea></div>
+        <div class="field"><label for="rightTextInput">右图下方文字</label><textarea id="rightTextInput" placeholder="右图说明文字"></textarea></div>
+        <div class="field"><label for="textBoxUnitMode">文本框位置 / 大小单位</label><select id="textBoxUnitMode"><option value="mm">毫米 mm</option><option value="px">像素 px</option><option value="pct">百分比 %</option></select></div>
+        <div class="three">
+          <div class="field"><label for="textTopMM">距上出血线</label><input id="textTopMM" type="number" min="0" max="140" step="0.1" value="106"></div>
+          <div class="field"><label for="textWidthMM">文本框宽度</label><input id="textWidthMM" type="number" min="12" max="140" step="0.1" value="88"></div>
+          <div class="field"><label for="textHeightMM">文本框高度</label><input id="textHeightMM" type="number" min="8" max="80" step="0.1" value="30"></div>
+        </div>
+        <div class="row"><button id="applyTextBoxAll" type="button">文本框位置应用全部</button></div>
+        <div class="hint">文本框与对应图框中心对齐；文字顶部对齐。预览中可拖左上角移动，拖右下角调宽高。</div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary>字体与样式</summary>
+      <div class="panel">
+        <input id="fontFileInput" type="file" accept=".ttf,.otf,.woff,.woff2,font/*" multiple>
+        <div class="row"><button id="loadFont" type="button">加载本地字体文件</button><button id="loadGithubFonts" type="button">手动加载 GitHub 字体库</button></div>
+        <div class="hint" id="githubFontReadout">默认不自动加载 GitHub 字体库，避免大量字体占用启动网络和内存。需要时点击上方按钮手动加载；现在读取 my-fonts-lib/chinese 和 my-fonts-lib/english，优先通过 GitHub Pages 访问，失败时自动尝试 raw.githubusercontent.com。</div>
+        <div class="field"><label for="fontFamily">字体</label><select id="fontFamily"></select></div>
+        <div class="two"><div class="field"><label for="fontSizePx">字号（导出 px）</label><input id="fontSizePx" type="number" min="8" max="260" step="1" value="58"></div><div class="field"><label for="lineHeight">行高</label><input id="lineHeight" type="number" min="0.8" max="3" step="0.05" value="1.25"></div></div>
+        <div class="field"><label for="textColorText">文字颜色</label><div class="row"><input id="textColor" type="color" value="#111827"><input id="textColorText" class="hex-input" type="text" value="#111827" placeholder="hex 或 XKCD 颜色" spellcheck="false" autocomplete="off"></div><div class="xkcd-suggestions hidden" id="textColorSuggestions"></div></div>
+        <div class="two"><div class="field"><label for="textAlign">横向对齐</label><select id="textAlign"><option value="center">居中</option><option value="left">左对齐</option><option value="right">右对齐</option></select></div><div class="field"><label for="textBgOpacity">底色透明度</label><input id="textBgOpacity" type="number" min="0" max="1" step="0.01" value="0"></div></div>
+        <div class="field"><label for="textBgColor">文本框底色</label><input id="textBgColor" type="color" value="#ffffff"></div>
+        <div class="row"><button id="applyTextStyleAll" type="button">文字样式应用全部</button></div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary>设置导出 / 导入</summary>
+      <div class="panel">
+        <input id="settingsInput" type="file" accept="application/json,.json">
+        <input id="assetFilesInput" type="file" accept="image/*" multiple>
+        <input id="photoFolderInput" type="file" accept="image/*" multiple webkitdirectory>
+        <input id="backgroundFolderInput" type="file" accept="image/*" multiple webkitdirectory>
+        <label class="check"><input id="exportImageRefs" type="checkbox" checked> JSON 保存图片文件名/相对路径（不嵌入图片）</label>
+        <div class="row">
+          <button id="exportCurrentSettings" type="button">导出当前设置</button>
+          <button id="exportAllSettings" type="button">导出全部设置</button>
+          <button class="primary" id="importSettings" type="button">导入设置</button>
+        </div>
+        <div class="field">
+          <label for="importSettingsMode">导入方式</label>
+          <select id="importSettingsMode">
+            <option value="current">应用到当前画布</option>
+            <option value="allSame">应用到全部画布（使用文件第一组设置）</option>
+            <option value="byOrder">按顺序应用到现有画布</option>
+            <option value="replace">替换全部画布设置</option>
+          </select>
+        </div>
+        <div class="row">
+          <button id="relinkPhotoFolder" type="button">选择图片文件夹加载左/右图</button>
+          <button id="relinkBackgroundFolder" type="button">选择背景文件夹加载背景</button>
+          <button id="relinkImageFiles" type="button">多选图片补充加载</button>
+        </div>
+        <div class="hint">设置 JSON 可保存所有可调参数，也可保存图片文件名/相对路径。浏览器不能静默读取本地路径；导入设置后，请分别选择“图片文件夹”和“背景文件夹”，系统会按相对路径、文件名和大小匹配左/右图与背景。多选图片补充加载可作为兜底。</div>
+      </div>
+    </details>
+  </aside>
+
+  <main class="stage-shell">
+    <div class="topbar">
+      <button id="downloadPng" class="primary" type="button">导出当前 300dpi PNG</button>
+      <button id="downloadPdf" type="button">导出当前 PDF</button>
+      <button id="downloadAllPngs" type="button">导出全部 ZIP（300dpi）</button>
+      <button id="downloadAllPdf" type="button">导出全部 PDF</button>
+      <div class="status" id="status">点击画布空白处改名；上传背景后可拖动/滚轮缩放背景；点击图框上传。导出为 286×146mm / 300dpi，PDF 为精确页面尺寸。</div>
+    </div>
+    <div class="workspace">
+      <section class="preview-card">
+        <div class="preview-stage" id="stage" aria-label="当前画布预览">
+          <img class="preview-bg" id="previewBg" alt="">
+          <div class="photo-frame" id="leftFrame" title="点击上传左图"><div class="photo-placeholder">点击上传<br>左图</div></div>
+          <div class="photo-frame" id="rightFrame" title="点击上传右图"><div class="photo-placeholder">点击上传<br>右图</div></div>
+          <div class="text-box" id="leftTextPreview"><div class="text-content" id="leftTextContent" contenteditable="true" spellcheck="true" data-placeholder="左图说明文字"></div><div class="move-handle" title="上下移动文本框"></div><div class="resize-handle" title="调整文本框宽高"></div></div>
+          <div class="text-box" id="rightTextPreview"><div class="text-content" id="rightTextContent" contenteditable="true" spellcheck="true" data-placeholder="右图说明文字"></div><div class="move-handle" title="上下移动文本框"></div><div class="resize-handle" title="调整文本框宽高"></div></div>
+          <div class="guide-bleed" id="bleedGuide"></div>
+          <div class="guide-center" id="centerGuide"></div>
+          <div class="guide-label" id="bleedLabel">3mm 出血线</div>
+          <div class="guide-label center-label" id="centerLabel">中线</div>
+        </div>
+        <div class="meta" id="previewMeta"></div>
+      </section>
+      <section class="overview-card">
+        <h2>全部画布预览</h2>
+        <div class="hint">显示所有画布的完整预览。可拖拽排序，单独导出任意画布。</div>
+        <div class="overview-grid" id="overviewGrid"></div>
+      </section>
+    </div>
+  </main>
+</div>
+<script>
+const SPEC = Object.freeze({ widthMM: 286, heightMM: 146, bleedMM: 3, dpi: 300 });
+const OUT = Object.freeze({
+  widthPx: Math.round(SPEC.widthMM / 25.4 * SPEC.dpi),
+  heightPx: Math.round(SPEC.heightMM / 25.4 * SPEC.dpi),
+  bleedPx: Math.round(SPEC.bleedMM / 25.4 * SPEC.dpi)
+});
+const XKCD_COLORS = [{"name":"cloudy blue","hex":"#acc2d9"},{"name":"dark pastel green","hex":"#56ae57"},{"name":"dust","hex":"#b2996e"},{"name":"electric lime","hex":"#a8ff04"},{"name":"fresh green","hex":"#69d84f"},{"name":"light eggplant","hex":"#894585"},{"name":"nasty green","hex":"#70b23f"},{"name":"really light blue","hex":"#d4ffff"},{"name":"tea","hex":"#65ab7c"},{"name":"warm purple","hex":"#952e8f"},{"name":"yellowish tan","hex":"#fcfc81"},{"name":"cement","hex":"#a5a391"},{"name":"dark grass green","hex":"#388004"},{"name":"dusty teal","hex":"#4c9085"},{"name":"grey teal","hex":"#5e9b8a"},{"name":"macaroni and cheese","hex":"#efb435"},{"name":"pinkish tan","hex":"#d99b82"},{"name":"spruce","hex":"#0a5f38"},{"name":"strong blue","hex":"#0c06f7"},{"name":"toxic green","hex":"#61de2a"},{"name":"windows blue","hex":"#3778bf"},{"name":"blue blue","hex":"#2242c7"},{"name":"blue with a hint of purple","hex":"#533cc6"},{"name":"booger","hex":"#9bb53c"},{"name":"bright sea green","hex":"#05ffa6"},{"name":"dark green blue","hex":"#1f6357"},{"name":"deep turquoise","hex":"#017374"},{"name":"green teal","hex":"#0cb577"},{"name":"strong pink","hex":"#ff0789"},{"name":"bland","hex":"#afa88b"},{"name":"deep aqua","hex":"#08787f"},{"name":"lavender pink","hex":"#dd85d7"},{"name":"light moss green","hex":"#a6c875"},{"name":"light seafoam green","hex":"#a7ffb5"},{"name":"olive yellow","hex":"#c2b709"},{"name":"pig pink","hex":"#e78ea5"},{"name":"deep lilac","hex":"#966ebd"},{"name":"desert","hex":"#ccad60"},{"name":"dusty lavender","hex":"#ac86a8"},{"name":"purpley grey","hex":"#947e94"},{"name":"purply","hex":"#983fb2"},{"name":"candy pink","hex":"#ff63e9"},{"name":"light pastel green","hex":"#b2fba5"},{"name":"boring green","hex":"#63b365"},{"name":"kiwi green","hex":"#8ee53f"},{"name":"light grey green","hex":"#b7e1a1"},{"name":"orange pink","hex":"#ff6f52"},{"name":"tea green","hex":"#bdf8a3"},{"name":"very light brown","hex":"#d3b683"},{"name":"egg shell","hex":"#fffcc4"},{"name":"eggplant purple","hex":"#430541"},{"name":"powder pink","hex":"#ffb2d0"},{"name":"reddish grey","hex":"#997570"},{"name":"baby shit brown","hex":"#ad900d"},{"name":"liliac","hex":"#c48efd"},{"name":"stormy blue","hex":"#507b9c"},{"name":"ugly brown","hex":"#7d7103"},{"name":"custard","hex":"#fffd78"},{"name":"darkish pink","hex":"#da467d"},{"name":"deep brown","hex":"#410200"},{"name":"greenish beige","hex":"#c9d179"},{"name":"manilla","hex":"#fffa86"},{"name":"off blue","hex":"#5684ae"},{"name":"battleship grey","hex":"#6b7c85"},{"name":"browny green","hex":"#6f6c0a"},{"name":"bruise","hex":"#7e4071"},{"name":"kelley green","hex":"#009337"},{"name":"sickly yellow","hex":"#d0e429"},{"name":"sunny yellow","hex":"#fff917"},{"name":"azul","hex":"#1d5dec"},{"name":"darkgreen","hex":"#054907"},{"name":"green/yellow","hex":"#b5ce08"},{"name":"lichen","hex":"#8fb67b"},{"name":"light light green","hex":"#c8ffb0"},{"name":"pale gold","hex":"#fdde6c"},{"name":"sun yellow","hex":"#ffdf22"},{"name":"tan green","hex":"#a9be70"},{"name":"burple","hex":"#6832e3"},{"name":"butterscotch","hex":"#fdb147"},{"name":"toupe","hex":"#c7ac7d"},{"name":"dark cream","hex":"#fff39a"},{"name":"indian red","hex":"#850e04"},{"name":"light lavendar","hex":"#efc0fe"},{"name":"poison green","hex":"#40fd14"},{"name":"baby puke green","hex":"#b6c406"},{"name":"bright yellow green","hex":"#9dff00"},{"name":"charcoal grey","hex":"#3c4142"},{"name":"squash","hex":"#f2ab15"},{"name":"cinnamon","hex":"#ac4f06"},{"name":"light pea green","hex":"#c4fe82"},{"name":"radioactive green","hex":"#2cfa1f"},{"name":"raw sienna","hex":"#9a6200"},{"name":"baby purple","hex":"#ca9bf7"},{"name":"cocoa","hex":"#875f42"},{"name":"light royal blue","hex":"#3a2efe"},{"name":"orangeish","hex":"#fd8d49"},{"name":"rust brown","hex":"#8b3103"},{"name":"sand brown","hex":"#cba560"},{"name":"swamp","hex":"#698339"},{"name":"tealish green","hex":"#0cdc73"},{"name":"burnt siena","hex":"#b75203"},{"name":"camo","hex":"#7f8f4e"},{"name":"dusk blue","hex":"#26538d"},{"name":"fern","hex":"#63a950"},{"name":"old rose","hex":"#c87f89"},{"name":"pale light green","hex":"#b1fc99"},{"name":"peachy pink","hex":"#ff9a8a"},{"name":"rosy pink","hex":"#f6688e"},{"name":"light bluish green","hex":"#76fda8"},{"name":"light bright green","hex":"#53fe5c"},{"name":"light neon green","hex":"#4efd54"},{"name":"light seafoam","hex":"#a0febf"},{"name":"tiffany blue","hex":"#7bf2da"},{"name":"washed out green","hex":"#bcf5a6"},{"name":"browny orange","hex":"#ca6b02"},{"name":"nice blue","hex":"#107ab0"},{"name":"sapphire","hex":"#2138ab"},{"name":"greyish teal","hex":"#719f91"},{"name":"orangey yellow","hex":"#fdb915"},{"name":"parchment","hex":"#fefcaf"},{"name":"straw","hex":"#fcf679"},{"name":"very dark brown","hex":"#1d0200"},{"name":"terracota","hex":"#cb6843"},{"name":"ugly blue","hex":"#31668a"},{"name":"clear blue","hex":"#247afd"},{"name":"creme","hex":"#ffffb6"},{"name":"foam green","hex":"#90fda9"},{"name":"grey/green","hex":"#86a17d"},{"name":"light gold","hex":"#fddc5c"},{"name":"seafoam blue","hex":"#78d1b6"},{"name":"topaz","hex":"#13bbaf"},{"name":"violet pink","hex":"#fb5ffc"},{"name":"wintergreen","hex":"#20f986"},{"name":"yellow tan","hex":"#ffe36e"},{"name":"dark fuchsia","hex":"#9d0759"},{"name":"indigo blue","hex":"#3a18b1"},{"name":"light yellowish green","hex":"#c2ff89"},{"name":"pale magenta","hex":"#d767ad"},{"name":"rich purple","hex":"#720058"},{"name":"sunflower yellow","hex":"#ffda03"},{"name":"green/blue","hex":"#01c08d"},{"name":"leather","hex":"#ac7434"},{"name":"racing green","hex":"#014600"},{"name":"vivid purple","hex":"#9900fa"},{"name":"dark royal blue","hex":"#02066f"},{"name":"hazel","hex":"#8e7618"},{"name":"muted pink","hex":"#d1768f"},{"name":"booger green","hex":"#96b403"},{"name":"canary","hex":"#fdff63"},{"name":"cool grey","hex":"#95a3a6"},{"name":"dark taupe","hex":"#7f684e"},{"name":"darkish purple","hex":"#751973"},{"name":"true green","hex":"#089404"},{"name":"coral pink","hex":"#ff6163"},{"name":"dark sage","hex":"#598556"},{"name":"dark slate blue","hex":"#214761"},{"name":"flat blue","hex":"#3c73a8"},{"name":"mushroom","hex":"#ba9e88"},{"name":"rich blue","hex":"#021bf9"},{"name":"dirty purple","hex":"#734a65"},{"name":"greenblue","hex":"#23c48b"},{"name":"icky green","hex":"#8fae22"},{"name":"light khaki","hex":"#e6f2a2"},{"name":"warm blue","hex":"#4b57db"},{"name":"dark hot pink","hex":"#d90166"},{"name":"deep sea blue","hex":"#015482"},{"name":"carmine","hex":"#9d0216"},{"name":"dark yellow green","hex":"#728f02"},{"name":"pale peach","hex":"#ffe5ad"},{"name":"plum purple","hex":"#4e0550"},{"name":"golden rod","hex":"#f9bc08"},{"name":"neon red","hex":"#ff073a"},{"name":"old pink","hex":"#c77986"},{"name":"very pale blue","hex":"#d6fffe"},{"name":"blood orange","hex":"#fe4b03"},{"name":"grapefruit","hex":"#fd5956"},{"name":"sand yellow","hex":"#fce166"},{"name":"clay brown","hex":"#b2713d"},{"name":"dark blue grey","hex":"#1f3b4d"},{"name":"flat green","hex":"#699d4c"},{"name":"light green blue","hex":"#56fca2"},{"name":"warm pink","hex":"#fb5581"},{"name":"dodger blue","hex":"#3e82fc"},{"name":"gross green","hex":"#a0bf16"},{"name":"ice","hex":"#d6fffa"},{"name":"metallic blue","hex":"#4f738e"},{"name":"pale salmon","hex":"#ffb19a"},{"name":"sap green","hex":"#5c8b15"},{"name":"algae","hex":"#54ac68"},{"name":"bluey grey","hex":"#89a0b0"},{"name":"greeny grey","hex":"#7ea07a"},{"name":"highlighter green","hex":"#1bfc06"},{"name":"light light blue","hex":"#cafffb"},{"name":"light mint","hex":"#b6ffbb"},{"name":"raw umber","hex":"#a75e09"},{"name":"vivid blue","hex":"#152eff"},{"name":"deep lavender","hex":"#8d5eb7"},{"name":"dull teal","hex":"#5f9e8f"},{"name":"light greenish blue","hex":"#63f7b4"},{"name":"mud green","hex":"#606602"},{"name":"pinky","hex":"#fc86aa"},{"name":"red wine","hex":"#8c0034"},{"name":"shit green","hex":"#758000"},{"name":"tan brown","hex":"#ab7e4c"},{"name":"darkblue","hex":"#030764"},{"name":"rosa","hex":"#fe86a4"},{"name":"lipstick","hex":"#d5174e"},{"name":"pale mauve","hex":"#fed0fc"},{"name":"claret","hex":"#680018"},{"name":"dandelion","hex":"#fedf08"},{"name":"orangered","hex":"#fe420f"},{"name":"poop green","hex":"#6f7c00"},{"name":"ruby","hex":"#ca0147"},{"name":"dark","hex":"#1b2431"},{"name":"greenish turquoise","hex":"#00fbb0"},{"name":"pastel red","hex":"#db5856"},{"name":"piss yellow","hex":"#ddd618"},{"name":"bright cyan","hex":"#41fdfe"},{"name":"dark coral","hex":"#cf524e"},{"name":"algae green","hex":"#21c36f"},{"name":"darkish red","hex":"#a90308"},{"name":"reddy brown","hex":"#6e1005"},{"name":"blush pink","hex":"#fe828c"},{"name":"camouflage green","hex":"#4b6113"},{"name":"lawn green","hex":"#4da409"},{"name":"putty","hex":"#beae8a"},{"name":"vibrant blue","hex":"#0339f8"},{"name":"dark sand","hex":"#a88f59"},{"name":"purple/blue","hex":"#5d21d0"},{"name":"saffron","hex":"#feb209"},{"name":"twilight","hex":"#4e518b"},{"name":"warm brown","hex":"#964e02"},{"name":"bluegrey","hex":"#85a3b2"},{"name":"bubble gum pink","hex":"#ff69af"},{"name":"duck egg blue","hex":"#c3fbf4"},{"name":"greenish cyan","hex":"#2afeb7"},{"name":"petrol","hex":"#005f6a"},{"name":"royal","hex":"#0c1793"},{"name":"butter","hex":"#ffff81"},{"name":"dusty orange","hex":"#f0833a"},{"name":"off yellow","hex":"#f1f33f"},{"name":"pale olive green","hex":"#b1d27b"},{"name":"orangish","hex":"#fc824a"},{"name":"leaf","hex":"#71aa34"},{"name":"light blue grey","hex":"#b7c9e2"},{"name":"dried blood","hex":"#4b0101"},{"name":"lightish purple","hex":"#a552e6"},{"name":"rusty red","hex":"#af2f0d"},{"name":"lavender blue","hex":"#8b88f8"},{"name":"light grass green","hex":"#9af764"},{"name":"light mint green","hex":"#a6fbb2"},{"name":"sunflower","hex":"#ffc512"},{"name":"velvet","hex":"#750851"},{"name":"brick orange","hex":"#c14a09"},{"name":"lightish red","hex":"#fe2f4a"},{"name":"pure blue","hex":"#0203e2"},{"name":"twilight blue","hex":"#0a437a"},{"name":"violet red","hex":"#a50055"},{"name":"yellowy brown","hex":"#ae8b0c"},{"name":"carnation","hex":"#fd798f"},{"name":"muddy yellow","hex":"#bfac05"},{"name":"dark seafoam green","hex":"#3eaf76"},{"name":"deep rose","hex":"#c74767"},{"name":"dusty red","hex":"#b9484e"},{"name":"grey/blue","hex":"#647d8e"},{"name":"lemon lime","hex":"#bffe28"},{"name":"purple/pink","hex":"#d725de"},{"name":"brown yellow","hex":"#b29705"},{"name":"purple brown","hex":"#673a3f"},{"name":"wisteria","hex":"#a87dc2"},{"name":"banana yellow","hex":"#fafe4b"},{"name":"lipstick red","hex":"#c0022f"},{"name":"water blue","hex":"#0e87cc"},{"name":"brown grey","hex":"#8d8468"},{"name":"vibrant purple","hex":"#ad03de"},{"name":"baby green","hex":"#8cff9e"},{"name":"barf green","hex":"#94ac02"},{"name":"eggshell blue","hex":"#c4fff7"},{"name":"sandy yellow","hex":"#fdee73"},{"name":"cool green","hex":"#33b864"},{"name":"pale","hex":"#fff9d0"},{"name":"blue/grey","hex":"#758da3"},{"name":"hot magenta","hex":"#f504c9"},{"name":"greyblue","hex":"#77a1b5"},{"name":"purpley","hex":"#8756e4"},{"name":"baby shit green","hex":"#889717"},{"name":"brownish pink","hex":"#c27e79"},{"name":"dark aquamarine","hex":"#017371"},{"name":"diarrhea","hex":"#9f8303"},{"name":"light mustard","hex":"#f7d560"},{"name":"pale sky blue","hex":"#bdf6fe"},{"name":"turtle green","hex":"#75b84f"},{"name":"bright olive","hex":"#9cbb04"},{"name":"dark grey blue","hex":"#29465b"},{"name":"greeny brown","hex":"#696006"},{"name":"lemon green","hex":"#adf802"},{"name":"light periwinkle","hex":"#c1c6fc"},{"name":"seaweed green","hex":"#35ad6b"},{"name":"sunshine yellow","hex":"#fffd37"},{"name":"ugly purple","hex":"#a442a0"},{"name":"medium pink","hex":"#f36196"},{"name":"puke brown","hex":"#947706"},{"name":"very light pink","hex":"#fff4f2"},{"name":"viridian","hex":"#1e9167"},{"name":"bile","hex":"#b5c306"},{"name":"faded yellow","hex":"#feff7f"},{"name":"very pale green","hex":"#cffdbc"},{"name":"vibrant green","hex":"#0add08"},{"name":"bright lime","hex":"#87fd05"},{"name":"spearmint","hex":"#1ef876"},{"name":"light aquamarine","hex":"#7bfdc7"},{"name":"light sage","hex":"#bcecac"},{"name":"yellowgreen","hex":"#bbf90f"},{"name":"baby poo","hex":"#ab9004"},{"name":"dark seafoam","hex":"#1fb57a"},{"name":"deep teal","hex":"#00555a"},{"name":"heather","hex":"#a484ac"},{"name":"rust orange","hex":"#c45508"},{"name":"dirty blue","hex":"#3f829d"},{"name":"fern green","hex":"#548d44"},{"name":"bright lilac","hex":"#c95efb"},{"name":"weird green","hex":"#3ae57f"},{"name":"peacock blue","hex":"#016795"},{"name":"avocado green","hex":"#87a922"},{"name":"faded orange","hex":"#f0944d"},{"name":"grape purple","hex":"#5d1451"},{"name":"hot green","hex":"#25ff29"},{"name":"lime yellow","hex":"#d0fe1d"},{"name":"mango","hex":"#ffa62b"},{"name":"shamrock","hex":"#01b44c"},{"name":"bubblegum","hex":"#ff6cb5"},{"name":"purplish brown","hex":"#6b4247"},{"name":"vomit yellow","hex":"#c7c10c"},{"name":"pale cyan","hex":"#b7fffa"},{"name":"key lime","hex":"#aeff6e"},{"name":"tomato red","hex":"#ec2d01"},{"name":"lightgreen","hex":"#76ff7b"},{"name":"merlot","hex":"#730039"},{"name":"night blue","hex":"#040348"},{"name":"purpleish pink","hex":"#df4ec8"},{"name":"apple","hex":"#6ecb3c"},{"name":"baby poop green","hex":"#8f9805"},{"name":"green apple","hex":"#5edc1f"},{"name":"heliotrope","hex":"#d94ff5"},{"name":"yellow/green","hex":"#c8fd3d"},{"name":"almost black","hex":"#070d0d"},{"name":"cool blue","hex":"#4984b8"},{"name":"leafy green","hex":"#51b73b"},{"name":"mustard brown","hex":"#ac7e04"},{"name":"dusk","hex":"#4e5481"},{"name":"dull brown","hex":"#876e4b"},{"name":"frog green","hex":"#58bc08"},{"name":"vivid green","hex":"#2fef10"},{"name":"bright light green","hex":"#2dfe54"},{"name":"fluro green","hex":"#0aff02"},{"name":"kiwi","hex":"#9cef43"},{"name":"seaweed","hex":"#18d17b"},{"name":"navy green","hex":"#35530a"},{"name":"ultramarine blue","hex":"#1805db"},{"name":"iris","hex":"#6258c4"},{"name":"pastel orange","hex":"#ff964f"},{"name":"yellowish orange","hex":"#ffab0f"},{"name":"perrywinkle","hex":"#8f8ce7"},{"name":"tealish","hex":"#24bca8"},{"name":"dark plum","hex":"#3f012c"},{"name":"pear","hex":"#cbf85f"},{"name":"pinkish orange","hex":"#ff724c"},{"name":"midnight purple","hex":"#280137"},{"name":"light urple","hex":"#b36ff6"},{"name":"dark mint","hex":"#48c072"},{"name":"greenish tan","hex":"#bccb7a"},{"name":"light burgundy","hex":"#a8415b"},{"name":"turquoise blue","hex":"#06b1c4"},{"name":"ugly pink","hex":"#cd7584"},{"name":"sandy","hex":"#f1da7a"},{"name":"electric pink","hex":"#ff0490"},{"name":"muted purple","hex":"#805b87"},{"name":"mid green","hex":"#50a747"},{"name":"greyish","hex":"#a8a495"},{"name":"neon yellow","hex":"#cfff04"},{"name":"banana","hex":"#ffff7e"},{"name":"carnation pink","hex":"#ff7fa7"},{"name":"tomato","hex":"#ef4026"},{"name":"sea","hex":"#3c9992"},{"name":"muddy brown","hex":"#886806"},{"name":"turquoise green","hex":"#04f489"},{"name":"buff","hex":"#fef69e"},{"name":"fawn","hex":"#cfaf7b"},{"name":"muted blue","hex":"#3b719f"},{"name":"pale rose","hex":"#fdc1c5"},{"name":"dark mint green","hex":"#20c073"},{"name":"amethyst","hex":"#9b5fc0"},{"name":"blue/green","hex":"#0f9b8e"},{"name":"chestnut","hex":"#742802"},{"name":"sick green","hex":"#9db92c"},{"name":"pea","hex":"#a4bf20"},{"name":"rusty orange","hex":"#cd5909"},{"name":"stone","hex":"#ada587"},{"name":"rose red","hex":"#be013c"},{"name":"pale aqua","hex":"#b8ffeb"},{"name":"deep orange","hex":"#dc4d01"},{"name":"earth","hex":"#a2653e"},{"name":"mossy green","hex":"#638b27"},{"name":"grassy green","hex":"#419c03"},{"name":"pale lime green","hex":"#b1ff65"},{"name":"light grey blue","hex":"#9dbcd4"},{"name":"pale grey","hex":"#fdfdfe"},{"name":"asparagus","hex":"#77ab56"},{"name":"blueberry","hex":"#464196"},{"name":"purple red","hex":"#990147"},{"name":"pale lime","hex":"#befd73"},{"name":"greenish teal","hex":"#32bf84"},{"name":"caramel","hex":"#af6f09"},{"name":"deep magenta","hex":"#a0025c"},{"name":"light peach","hex":"#ffd8b1"},{"name":"milk chocolate","hex":"#7f4e1e"},{"name":"ocher","hex":"#bf9b0c"},{"name":"off green","hex":"#6ba353"},{"name":"purply pink","hex":"#f075e6"},{"name":"lightblue","hex":"#7bc8f6"},{"name":"dusky blue","hex":"#475f94"},{"name":"golden","hex":"#f5bf03"},{"name":"light beige","hex":"#fffeb6"},{"name":"butter yellow","hex":"#fffd74"},{"name":"dusky purple","hex":"#895b7b"},{"name":"french blue","hex":"#436bad"},{"name":"ugly yellow","hex":"#d0c101"},{"name":"greeny yellow","hex":"#c6f808"},{"name":"orangish red","hex":"#f43605"},{"name":"shamrock green","hex":"#02c14d"},{"name":"orangish brown","hex":"#b25f03"},{"name":"tree green","hex":"#2a7e19"},{"name":"deep violet","hex":"#490648"},{"name":"gunmetal","hex":"#536267"},{"name":"blue/purple","hex":"#5a06ef"},{"name":"cherry","hex":"#cf0234"},{"name":"sandy brown","hex":"#c4a661"},{"name":"warm grey","hex":"#978a84"},{"name":"dark indigo","hex":"#1f0954"},{"name":"midnight","hex":"#03012d"},{"name":"bluey green","hex":"#2bb179"},{"name":"grey pink","hex":"#c3909b"},{"name":"soft purple","hex":"#a66fb5"},{"name":"blood","hex":"#770001"},{"name":"brown red","hex":"#922b05"},{"name":"medium grey","hex":"#7d7f7c"},{"name":"berry","hex":"#990f4b"},{"name":"poo","hex":"#8f7303"},{"name":"purpley pink","hex":"#c83cb9"},{"name":"light salmon","hex":"#fea993"},{"name":"snot","hex":"#acbb0d"},{"name":"easter purple","hex":"#c071fe"},{"name":"light yellow green","hex":"#ccfd7f"},{"name":"dark navy blue","hex":"#00022e"},{"name":"drab","hex":"#828344"},{"name":"light rose","hex":"#ffc5cb"},{"name":"rouge","hex":"#ab1239"},{"name":"purplish red","hex":"#b0054b"},{"name":"slime green","hex":"#99cc04"},{"name":"baby poop","hex":"#937c00"},{"name":"irish green","hex":"#019529"},{"name":"pink/purple","hex":"#ef1de7"},{"name":"dark navy","hex":"#000435"},{"name":"greeny blue","hex":"#42b395"},{"name":"light plum","hex":"#9d5783"},{"name":"pinkish grey","hex":"#c8aca9"},{"name":"dirty orange","hex":"#c87606"},{"name":"rust red","hex":"#aa2704"},{"name":"pale lilac","hex":"#e4cbff"},{"name":"orangey red","hex":"#fa4224"},{"name":"primary blue","hex":"#0804f9"},{"name":"kermit green","hex":"#5cb200"},{"name":"brownish purple","hex":"#76424e"},{"name":"murky green","hex":"#6c7a0e"},{"name":"wheat","hex":"#fbdd7e"},{"name":"very dark purple","hex":"#2a0134"},{"name":"bottle green","hex":"#044a05"},{"name":"watermelon","hex":"#fd4659"},{"name":"deep sky blue","hex":"#0d75f8"},{"name":"fire engine red","hex":"#fe0002"},{"name":"yellow ochre","hex":"#cb9d06"},{"name":"pumpkin orange","hex":"#fb7d07"},{"name":"pale olive","hex":"#b9cc81"},{"name":"light lilac","hex":"#edc8ff"},{"name":"lightish green","hex":"#61e160"},{"name":"carolina blue","hex":"#8ab8fe"},{"name":"mulberry","hex":"#920a4e"},{"name":"shocking pink","hex":"#fe02a2"},{"name":"auburn","hex":"#9a3001"},{"name":"bright lime green","hex":"#65fe08"},{"name":"celadon","hex":"#befdb7"},{"name":"pinkish brown","hex":"#b17261"},{"name":"poo brown","hex":"#885f01"},{"name":"bright sky blue","hex":"#02ccfe"},{"name":"celery","hex":"#c1fd95"},{"name":"dirt brown","hex":"#836539"},{"name":"strawberry","hex":"#fb2943"},{"name":"dark lime","hex":"#84b701"},{"name":"copper","hex":"#b66325"},{"name":"medium brown","hex":"#7f5112"},{"name":"muted green","hex":"#5fa052"},{"name":"robin's egg","hex":"#6dedfd"},{"name":"bright aqua","hex":"#0bf9ea"},{"name":"bright lavender","hex":"#c760ff"},{"name":"ivory","hex":"#ffffcb"},{"name":"very light purple","hex":"#f6cefc"},{"name":"light navy","hex":"#155084"},{"name":"pink red","hex":"#f5054f"},{"name":"olive brown","hex":"#645403"},{"name":"poop brown","hex":"#7a5901"},{"name":"mustard green","hex":"#a8b504"},{"name":"ocean green","hex":"#3d9973"},{"name":"very dark blue","hex":"#000133"},{"name":"dusty green","hex":"#76a973"},{"name":"light navy blue","hex":"#2e5a88"},{"name":"minty green","hex":"#0bf77d"},{"name":"adobe","hex":"#bd6c48"},{"name":"barney","hex":"#ac1db8"},{"name":"jade green","hex":"#2baf6a"},{"name":"bright light blue","hex":"#26f7fd"},{"name":"light lime","hex":"#aefd6c"},{"name":"dark khaki","hex":"#9b8f55"},{"name":"orange yellow","hex":"#ffad01"},{"name":"ocre","hex":"#c69c04"},{"name":"maize","hex":"#f4d054"},{"name":"faded pink","hex":"#de9dac"},{"name":"british racing green","hex":"#05480d"},{"name":"sandstone","hex":"#c9ae74"},{"name":"mud brown","hex":"#60460f"},{"name":"light sea green","hex":"#98f6b0"},{"name":"robin egg blue","hex":"#8af1fe"},{"name":"aqua marine","hex":"#2ee8bb"},{"name":"dark sea green","hex":"#11875d"},{"name":"soft pink","hex":"#fdb0c0"},{"name":"orangey brown","hex":"#b16002"},{"name":"cherry red","hex":"#f7022a"},{"name":"burnt yellow","hex":"#d5ab09"},{"name":"brownish grey","hex":"#86775f"},{"name":"camel","hex":"#c69f59"},{"name":"purplish grey","hex":"#7a687f"},{"name":"marine","hex":"#042e60"},{"name":"greyish pink","hex":"#c88d94"},{"name":"pale turquoise","hex":"#a5fbd5"},{"name":"pastel yellow","hex":"#fffe71"},{"name":"bluey purple","hex":"#6241c7"},{"name":"canary yellow","hex":"#fffe40"},{"name":"faded red","hex":"#d3494e"},{"name":"sepia","hex":"#985e2b"},{"name":"coffee","hex":"#a6814c"},{"name":"bright magenta","hex":"#ff08e8"},{"name":"mocha","hex":"#9d7651"},{"name":"ecru","hex":"#feffca"},{"name":"purpleish","hex":"#98568d"},{"name":"cranberry","hex":"#9e003a"},{"name":"darkish green","hex":"#287c37"},{"name":"brown orange","hex":"#b96902"},{"name":"dusky rose","hex":"#ba6873"},{"name":"melon","hex":"#ff7855"},{"name":"sickly green","hex":"#94b21c"},{"name":"silver","hex":"#c5c9c7"},{"name":"purply blue","hex":"#661aee"},{"name":"purpleish blue","hex":"#6140ef"},{"name":"hospital green","hex":"#9be5aa"},{"name":"shit brown","hex":"#7b5804"},{"name":"mid blue","hex":"#276ab3"},{"name":"amber","hex":"#feb308"},{"name":"easter green","hex":"#8cfd7e"},{"name":"soft blue","hex":"#6488ea"},{"name":"cerulean blue","hex":"#056eee"},{"name":"golden brown","hex":"#b27a01"},{"name":"bright turquoise","hex":"#0ffef9"},{"name":"red pink","hex":"#fa2a55"},{"name":"red purple","hex":"#820747"},{"name":"greyish brown","hex":"#7a6a4f"},{"name":"vermillion","hex":"#f4320c"},{"name":"russet","hex":"#a13905"},{"name":"steel grey","hex":"#6f828a"},{"name":"lighter purple","hex":"#a55af4"},{"name":"bright violet","hex":"#ad0afd"},{"name":"prussian blue","hex":"#004577"},{"name":"slate green","hex":"#658d6d"},{"name":"dirty pink","hex":"#ca7b80"},{"name":"dark blue green","hex":"#005249"},{"name":"pine","hex":"#2b5d34"},{"name":"yellowy green","hex":"#bff128"},{"name":"dark gold","hex":"#b59410"},{"name":"bluish","hex":"#2976bb"},{"name":"darkish blue","hex":"#014182"},{"name":"dull red","hex":"#bb3f3f"},{"name":"pinky red","hex":"#fc2647"},{"name":"bronze","hex":"#a87900"},{"name":"pale teal","hex":"#82cbb2"},{"name":"military green","hex":"#667c3e"},{"name":"barbie pink","hex":"#fe46a5"},{"name":"bubblegum pink","hex":"#fe83cc"},{"name":"pea soup green","hex":"#94a617"},{"name":"dark mustard","hex":"#a88905"},{"name":"shit","hex":"#7f5f00"},{"name":"medium purple","hex":"#9e43a2"},{"name":"very dark green","hex":"#062e03"},{"name":"dirt","hex":"#8a6e45"},{"name":"dusky pink","hex":"#cc7a8b"},{"name":"red violet","hex":"#9e0168"},{"name":"lemon yellow","hex":"#fdff38"},{"name":"pistachio","hex":"#c0fa8b"},{"name":"dull yellow","hex":"#eedc5b"},{"name":"dark lime green","hex":"#7ebd01"},{"name":"denim blue","hex":"#3b5b92"},{"name":"teal blue","hex":"#01889f"},{"name":"lightish blue","hex":"#3d7afd"},{"name":"purpley blue","hex":"#5f34e7"},{"name":"light indigo","hex":"#6d5acf"},{"name":"swamp green","hex":"#748500"},{"name":"brown green","hex":"#706c11"},{"name":"dark maroon","hex":"#3c0008"},{"name":"hot purple","hex":"#cb00f5"},{"name":"dark forest green","hex":"#002d04"},{"name":"faded blue","hex":"#658cbb"},{"name":"drab green","hex":"#749551"},{"name":"light lime green","hex":"#b9ff66"},{"name":"snot green","hex":"#9dc100"},{"name":"yellowish","hex":"#faee66"},{"name":"light blue green","hex":"#7efbb3"},{"name":"bordeaux","hex":"#7b002c"},{"name":"light mauve","hex":"#c292a1"},{"name":"ocean","hex":"#017b92"},{"name":"marigold","hex":"#fcc006"},{"name":"muddy green","hex":"#657432"},{"name":"dull orange","hex":"#d8863b"},{"name":"steel","hex":"#738595"},{"name":"electric purple","hex":"#aa23ff"},{"name":"fluorescent green","hex":"#08ff08"},{"name":"yellowish brown","hex":"#9b7a01"},{"name":"blush","hex":"#f29e8e"},{"name":"soft green","hex":"#6fc276"},{"name":"bright orange","hex":"#ff5b00"},{"name":"lemon","hex":"#fdff52"},{"name":"purple grey","hex":"#866f85"},{"name":"acid green","hex":"#8ffe09"},{"name":"pale lavender","hex":"#eecffe"},{"name":"violet blue","hex":"#510ac9"},{"name":"light forest green","hex":"#4f9153"},{"name":"burnt red","hex":"#9f2305"},{"name":"khaki green","hex":"#728639"},{"name":"cerise","hex":"#de0c62"},{"name":"faded purple","hex":"#916e99"},{"name":"apricot","hex":"#ffb16d"},{"name":"dark olive green","hex":"#3c4d03"},{"name":"grey brown","hex":"#7f7053"},{"name":"green grey","hex":"#77926f"},{"name":"true blue","hex":"#010fcc"},{"name":"pale violet","hex":"#ceaefa"},{"name":"periwinkle blue","hex":"#8f99fb"},{"name":"light sky blue","hex":"#c6fcff"},{"name":"blurple","hex":"#5539cc"},{"name":"green brown","hex":"#544e03"},{"name":"bluegreen","hex":"#017a79"},{"name":"bright teal","hex":"#01f9c6"},{"name":"brownish yellow","hex":"#c9b003"},{"name":"pea soup","hex":"#929901"},{"name":"forest","hex":"#0b5509"},{"name":"barney purple","hex":"#a00498"},{"name":"ultramarine","hex":"#2000b1"},{"name":"purplish","hex":"#94568c"},{"name":"puke yellow","hex":"#c2be0e"},{"name":"bluish grey","hex":"#748b97"},{"name":"dark periwinkle","hex":"#665fd1"},{"name":"dark lilac","hex":"#9c6da5"},{"name":"reddish","hex":"#c44240"},{"name":"light maroon","hex":"#a24857"},{"name":"dusty purple","hex":"#825f87"},{"name":"terra cotta","hex":"#c9643b"},{"name":"avocado","hex":"#90b134"},{"name":"marine blue","hex":"#01386a"},{"name":"teal green","hex":"#25a36f"},{"name":"slate grey","hex":"#59656d"},{"name":"lighter green","hex":"#75fd63"},{"name":"electric green","hex":"#21fc0d"},{"name":"dusty blue","hex":"#5a86ad"},{"name":"golden yellow","hex":"#fec615"},{"name":"bright yellow","hex":"#fffd01"},{"name":"light lavender","hex":"#dfc5fe"},{"name":"umber","hex":"#b26400"},{"name":"poop","hex":"#7f5e00"},{"name":"dark peach","hex":"#de7e5d"},{"name":"jungle green","hex":"#048243"},{"name":"eggshell","hex":"#ffffd4"},{"name":"denim","hex":"#3b638c"},{"name":"yellow brown","hex":"#b79400"},{"name":"dull purple","hex":"#84597e"},{"name":"chocolate brown","hex":"#411900"},{"name":"wine red","hex":"#7b0323"},{"name":"neon blue","hex":"#04d9ff"},{"name":"dirty green","hex":"#667e2c"},{"name":"light tan","hex":"#fbeeac"},{"name":"ice blue","hex":"#d7fffe"},{"name":"cadet blue","hex":"#4e7496"},{"name":"dark mauve","hex":"#874c62"},{"name":"very light blue","hex":"#d5ffff"},{"name":"grey purple","hex":"#826d8c"},{"name":"pastel pink","hex":"#ffbacd"},{"name":"very light green","hex":"#d1ffbd"},{"name":"dark sky blue","hex":"#448ee4"},{"name":"evergreen","hex":"#05472a"},{"name":"dull pink","hex":"#d5869d"},{"name":"aubergine","hex":"#3d0734"},{"name":"mahogany","hex":"#4a0100"},{"name":"reddish orange","hex":"#f8481c"},{"name":"deep green","hex":"#02590f"},{"name":"vomit green","hex":"#89a203"},{"name":"purple pink","hex":"#e03fd8"},{"name":"dusty pink","hex":"#d58a94"},{"name":"faded green","hex":"#7bb274"},{"name":"camo green","hex":"#526525"},{"name":"pinky purple","hex":"#c94cbe"},{"name":"pink purple","hex":"#db4bda"},{"name":"brownish red","hex":"#9e3623"},{"name":"dark rose","hex":"#b5485d"},{"name":"mud","hex":"#735c12"},{"name":"brownish","hex":"#9c6d57"},{"name":"emerald green","hex":"#028f1e"},{"name":"pale brown","hex":"#b1916e"},{"name":"dull blue","hex":"#49759c"},{"name":"burnt umber","hex":"#a0450e"},{"name":"medium green","hex":"#39ad48"},{"name":"clay","hex":"#b66a50"},{"name":"light aqua","hex":"#8cffdb"},{"name":"light olive green","hex":"#a4be5c"},{"name":"brownish orange","hex":"#cb7723"},{"name":"dark aqua","hex":"#05696b"},{"name":"purplish pink","hex":"#ce5dae"},{"name":"dark salmon","hex":"#c85a53"},{"name":"greenish grey","hex":"#96ae8d"},{"name":"jade","hex":"#1fa774"},{"name":"ugly green","hex":"#7a9703"},{"name":"dark beige","hex":"#ac9362"},{"name":"emerald","hex":"#01a049"},{"name":"pale red","hex":"#d9544d"},{"name":"light magenta","hex":"#fa5ff7"},{"name":"sky","hex":"#82cafc"},{"name":"light cyan","hex":"#acfffc"},{"name":"yellow orange","hex":"#fcb001"},{"name":"reddish purple","hex":"#910951"},{"name":"reddish pink","hex":"#fe2c54"},{"name":"orchid","hex":"#c875c4"},{"name":"dirty yellow","hex":"#cdc50a"},{"name":"orange red","hex":"#fd411e"},{"name":"deep red","hex":"#9a0200"},{"name":"orange brown","hex":"#be6400"},{"name":"cobalt blue","hex":"#030aa7"},{"name":"neon pink","hex":"#fe019a"},{"name":"rose pink","hex":"#f7879a"},{"name":"greyish purple","hex":"#887191"},{"name":"raspberry","hex":"#b00149"},{"name":"aqua green","hex":"#12e193"},{"name":"salmon pink","hex":"#fe7b7c"},{"name":"tangerine","hex":"#ff9408"},{"name":"brownish green","hex":"#6a6e09"},{"name":"red brown","hex":"#8b2e16"},{"name":"greenish brown","hex":"#696112"},{"name":"pumpkin","hex":"#e17701"},{"name":"pine green","hex":"#0a481e"},{"name":"charcoal","hex":"#343837"},{"name":"baby pink","hex":"#ffb7ce"},{"name":"cornflower","hex":"#6a79f7"},{"name":"blue violet","hex":"#5d06e9"},{"name":"chocolate","hex":"#3d1c02"},{"name":"greyish green","hex":"#82a67d"},{"name":"scarlet","hex":"#be0119"},{"name":"green yellow","hex":"#c9ff27"},{"name":"dark olive","hex":"#373e02"},{"name":"sienna","hex":"#a9561e"},{"name":"pastel purple","hex":"#caa0ff"},{"name":"terracotta","hex":"#ca6641"},{"name":"aqua blue","hex":"#02d8e9"},{"name":"sage green","hex":"#88b378"},{"name":"blood red","hex":"#980002"},{"name":"deep pink","hex":"#cb0162"},{"name":"grass","hex":"#5cac2d"},{"name":"moss","hex":"#769958"},{"name":"pastel blue","hex":"#a2bffe"},{"name":"bluish green","hex":"#10a674"},{"name":"green blue","hex":"#06b48b"},{"name":"dark tan","hex":"#af884a"},{"name":"greenish blue","hex":"#0b8b87"},{"name":"pale orange","hex":"#ffa756"},{"name":"vomit","hex":"#a2a415"},{"name":"forrest green","hex":"#154406"},{"name":"dark lavender","hex":"#856798"},{"name":"dark violet","hex":"#34013f"},{"name":"purple blue","hex":"#632de9"},{"name":"dark cyan","hex":"#0a888a"},{"name":"olive drab","hex":"#6f7632"},{"name":"pinkish","hex":"#d46a7e"},{"name":"cobalt","hex":"#1e488f"},{"name":"neon purple","hex":"#bc13fe"},{"name":"light turquoise","hex":"#7ef4cc"},{"name":"apple green","hex":"#76cd26"},{"name":"dull green","hex":"#74a662"},{"name":"wine","hex":"#80013f"},{"name":"powder blue","hex":"#b1d1fc"},{"name":"off white","hex":"#ffffe4"},{"name":"electric blue","hex":"#0652ff"},{"name":"dark turquoise","hex":"#045c5a"},{"name":"blue purple","hex":"#5729ce"},{"name":"azure","hex":"#069af3"},{"name":"bright red","hex":"#ff000d"},{"name":"pinkish red","hex":"#f10c45"},{"name":"cornflower blue","hex":"#5170d7"},{"name":"light olive","hex":"#acbf69"},{"name":"grape","hex":"#6c3461"},{"name":"greyish blue","hex":"#5e819d"},{"name":"purplish blue","hex":"#601ef9"},{"name":"yellowish green","hex":"#b0dd16"},{"name":"greenish yellow","hex":"#cdfd02"},{"name":"medium blue","hex":"#2c6fbb"},{"name":"dusty rose","hex":"#c0737a"},{"name":"light violet","hex":"#d6b4fc"},{"name":"midnight blue","hex":"#020035"},{"name":"bluish purple","hex":"#703be7"},{"name":"red orange","hex":"#fd3c06"},{"name":"dark magenta","hex":"#960056"},{"name":"greenish","hex":"#40a368"},{"name":"ocean blue","hex":"#03719c"},{"name":"coral","hex":"#fc5a50"},{"name":"cream","hex":"#ffffc2"},{"name":"reddish brown","hex":"#7f2b0a"},{"name":"burnt sienna","hex":"#b04e0f"},{"name":"brick","hex":"#a03623"},{"name":"sage","hex":"#87ae73"},{"name":"grey green","hex":"#789b73"},{"name":"white","hex":"#ffffff"},{"name":"robin's egg blue","hex":"#98eff9"},{"name":"moss green","hex":"#658b38"},{"name":"steel blue","hex":"#5a7d9a"},{"name":"eggplant","hex":"#380835"},{"name":"light yellow","hex":"#fffe7a"},{"name":"leaf green","hex":"#5ca904"},{"name":"light grey","hex":"#d8dcd6"},{"name":"puke","hex":"#a5a502"},{"name":"pinkish purple","hex":"#d648d7"},{"name":"sea blue","hex":"#047495"},{"name":"pale purple","hex":"#b790d4"},{"name":"slate blue","hex":"#5b7c99"},{"name":"blue grey","hex":"#607c8e"},{"name":"hunter green","hex":"#0b4008"},{"name":"fuchsia","hex":"#ed0dd9"},{"name":"crimson","hex":"#8c000f"},{"name":"pale yellow","hex":"#ffff84"},{"name":"ochre","hex":"#bf9005"},{"name":"mustard yellow","hex":"#d2bd0a"},{"name":"light red","hex":"#ff474c"},{"name":"cerulean","hex":"#0485d1"},{"name":"pale pink","hex":"#ffcfdc"},{"name":"deep blue","hex":"#040273"},{"name":"rust","hex":"#a83c09"},{"name":"light teal","hex":"#90e4c1"},{"name":"slate","hex":"#516572"},{"name":"goldenrod","hex":"#fac205"},{"name":"dark yellow","hex":"#d5b60a"},{"name":"dark grey","hex":"#363737"},{"name":"army green","hex":"#4b5d16"},{"name":"grey blue","hex":"#6b8ba4"},{"name":"seafoam","hex":"#80f9ad"},{"name":"puce","hex":"#a57e52"},{"name":"spring green","hex":"#a9f971"},{"name":"dark orange","hex":"#c65102"},{"name":"sand","hex":"#e2ca76"},{"name":"pastel green","hex":"#b0ff9d"},{"name":"mint","hex":"#9ffeb0"},{"name":"light orange","hex":"#fdaa48"},{"name":"bright pink","hex":"#fe01b1"},{"name":"chartreuse","hex":"#c1f80a"},{"name":"deep purple","hex":"#36013f"},{"name":"dark brown","hex":"#341c02"},{"name":"taupe","hex":"#b9a281"},{"name":"pea green","hex":"#8eab12"},{"name":"puke green","hex":"#9aae07"},{"name":"kelly green","hex":"#02ab2e"},{"name":"seafoam green","hex":"#7af9ab"},{"name":"blue green","hex":"#137e6d"},{"name":"khaki","hex":"#aaa662"},{"name":"burgundy","hex":"#610023"},{"name":"dark teal","hex":"#014d4e"},{"name":"brick red","hex":"#8f1402"},{"name":"royal purple","hex":"#4b006e"},{"name":"plum","hex":"#580f41"},{"name":"mint green","hex":"#8fff9f"},{"name":"gold","hex":"#dbb40c"},{"name":"baby blue","hex":"#a2cffe"},{"name":"yellow green","hex":"#c0fb2d"},{"name":"bright purple","hex":"#be03fd"},{"name":"dark red","hex":"#840000"},{"name":"pale blue","hex":"#d0fefe"},{"name":"grass green","hex":"#3f9b0b"},{"name":"navy","hex":"#01153e"},{"name":"aquamarine","hex":"#04d8b2"},{"name":"burnt orange","hex":"#c04e01"},{"name":"neon green","hex":"#0cff0c"},{"name":"bright blue","hex":"#0165fc"},{"name":"rose","hex":"#cf6275"},{"name":"light pink","hex":"#ffd1df"},{"name":"mustard","hex":"#ceb301"},{"name":"indigo","hex":"#380282"},{"name":"lime","hex":"#aaff32"},{"name":"sea green","hex":"#53fca1"},{"name":"periwinkle","hex":"#8e82fe"},{"name":"dark pink","hex":"#cb416b"},{"name":"olive green","hex":"#677a04"},{"name":"peach","hex":"#ffb07c"},{"name":"pale green","hex":"#c7fdb5"},{"name":"light brown","hex":"#ad8150"},{"name":"hot pink","hex":"#ff028d"},{"name":"black","hex":"#000000"},{"name":"lilac","hex":"#cea2fd"},{"name":"navy blue","hex":"#001146"},{"name":"royal blue","hex":"#0504aa"},{"name":"beige","hex":"#e6daa6"},{"name":"salmon","hex":"#ff796c"},{"name":"olive","hex":"#6e750e"},{"name":"maroon","hex":"#650021"},{"name":"bright green","hex":"#01ff07"},{"name":"dark purple","hex":"#35063e"},{"name":"mauve","hex":"#ae7181"},{"name":"forest green","hex":"#06470c"},{"name":"aqua","hex":"#13eac9"},{"name":"cyan","hex":"#00ffff"},{"name":"tan","hex":"#d1b26f"},{"name":"dark blue","hex":"#00035b"},{"name":"lavender","hex":"#c79fef"},{"name":"turquoise","hex":"#06c2ac"},{"name":"dark green","hex":"#033500"},{"name":"violet","hex":"#9a0eea"},{"name":"light purple","hex":"#bf77f6"},{"name":"lime green","hex":"#89fe05"},{"name":"grey","hex":"#929591"},{"name":"sky blue","hex":"#75bbfd"},{"name":"yellow","hex":"#ffff14"},{"name":"magenta","hex":"#c20078"},{"name":"light green","hex":"#96f97b"},{"name":"orange","hex":"#f97306"},{"name":"teal","hex":"#029386"},{"name":"light blue","hex":"#95d0fc"},{"name":"red","hex":"#e50000"},{"name":"brown","hex":"#653700"},{"name":"pink","hex":"#ff81c0"},{"name":"blue","hex":"#0343df"},{"name":"green","hex":"#15b01a"},{"name":"purple","hex":"#7e1e9c"}];;
+const baseSettings = {
+  backgroundColor: "#ffffff",
+  imageSizeMM: 88,
+  imageTopGapMM: 10,
+  imageUnitMode: "mm",
+  imageFit: "cover",
+  borderAuto: true,
+  borderColor: "#111827",
+  borderWidthPx: 12,
+  borderRadiusPx: 36,
+  borderUnitMode: "px",
+  textTopMM: 106,
+  textWidthMM: 88,
+  textHeightMM: 30,
+  textBoxUnitMode: "mm",
+  fontFamily: "Microsoft YaHei",
+  fontSizePx: 58,
+  lineHeight: 1.25,
+  textColor: "#111827",
+  textAlign: "center",
+  textBgColor: "#ffffff",
+  textBgOpacity: 0,
+  backgroundOffsetXPct: 0,
+  backgroundOffsetYPct: 0,
+  backgroundScalePct: 100,
+  backgroundEditUnlocked: false,
+  showGuides: true
+};
+const fontOptions = [
+  ["苹方 / PingFang SC", "PingFang SC"], ["微软雅黑 / Microsoft YaHei", "Microsoft YaHei"], ["黑体 / SimHei", "SimHei"],
+  ["宋体 / SimSun", "SimSun"], ["楷体 / KaiTi", "KaiTi"], ["思源黑体 / Noto Sans SC", "Noto Sans SC"],
+  ["Arial", "Arial"], ["Georgia", "Georgia"], ["Times New Roman", "Times New Roman"], ["Comic Sans MS", "Comic Sans MS"]
+];
+const customFonts = [];
+const GITHUB_FONT_REPO = Object.freeze({
+  owner: "neutrino137",
+  repo: "neutrino137.github.io",
+  branch: "main",
+  directories: ["my-fonts-lib/chinese", "my-fonts-lib/english"],
+  pagesBase: "https://neutrino137.github.io/",
+  rawBase: "https://raw.githubusercontent.com/neutrino137/neutrino137.github.io/main/"
+});
+const MIN_REMOTE_FONT_BYTES = 1024;
+const GITHUB_FONT_FALLBACK_FILES = [
+  { path: "my-fonts-lib/chinese/FangZhengShengShiKaiShuJianTi-1.ttf", size: 0 },
+  { path: "my-fonts-lib/chinese/FangZhengShengShiKaiShuJianTi-Da-2.ttf", size: 0 },
+  { path: "my-fonts-lib/chinese/LXGWWenKai-Regular.ttf", size: 0 }
+];
+const state = { pages: [], currentPageId: "", nextPageNumber: 1, dragPageId: "", overviewRenderToken: 0, overviewRenderTimer: 0, suppressStageClickUntil: 0, githubFontsLoading: false, githubFontsLoaded: false };
+const $ = id => document.getElementById(id);
+const els = {
+  newCanvas: $("newCanvas"), duplicateCanvas: $("duplicateCanvas"), deleteCanvas: $("deleteCanvas"), pageList: $("pageList"),
+  backgroundInput: $("backgroundInput"), uploadBackground: $("uploadBackground"), clearBackground: $("clearBackground"), toggleBackgroundEdit: $("toggleBackgroundEdit"), resetBackgroundView: $("resetBackgroundView"), applyBackgroundAll: $("applyBackgroundAll"), backgroundColor: $("backgroundColor"), backgroundReadout: $("backgroundReadout"), showGuides: $("showGuides"),
+  leftInput: $("leftInput"), rightInput: $("rightInput"), uploadLeft: $("uploadLeft"), uploadRight: $("uploadRight"), resetLayout: $("resetLayout"),
+  imageUnitMode: $("imageUnitMode"), imageSizeMM: $("imageSizeMM"), imageTopGapMM: $("imageTopGapMM"), imageFit: $("imageFit"),
+  borderAuto: $("borderAuto"), pickDarkest: $("pickDarkest"), borderColor: $("borderColor"), borderColorText: $("borderColorText"), borderColorSuggestions: $("borderColorSuggestions"), borderUnitMode: $("borderUnitMode"), borderWidthPx: $("borderWidthPx"), borderRadiusPx: $("borderRadiusPx"), applyLayoutAll: $("applyLayoutAll"),
+  leftTextInput: $("leftTextInput"), rightTextInput: $("rightTextInput"), textBoxUnitMode: $("textBoxUnitMode"), textTopMM: $("textTopMM"), textWidthMM: $("textWidthMM"), textHeightMM: $("textHeightMM"), applyTextBoxAll: $("applyTextBoxAll"),
+  fontFileInput: $("fontFileInput"), loadFont: $("loadFont"), loadGithubFonts: $("loadGithubFonts"), githubFontReadout: $("githubFontReadout"), fontFamily: $("fontFamily"), fontSizePx: $("fontSizePx"), lineHeight: $("lineHeight"), textColor: $("textColor"), textColorText: $("textColorText"), textColorSuggestions: $("textColorSuggestions"), textAlign: $("textAlign"), textBgColor: $("textBgColor"), textBgOpacity: $("textBgOpacity"), applyTextStyleAll: $("applyTextStyleAll"),
+  settingsInput: $("settingsInput"), assetFilesInput: $("assetFilesInput"), photoFolderInput: $("photoFolderInput"), backgroundFolderInput: $("backgroundFolderInput"), exportImageRefs: $("exportImageRefs"), exportCurrentSettings: $("exportCurrentSettings"), exportAllSettings: $("exportAllSettings"), importSettings: $("importSettings"), importSettingsMode: $("importSettingsMode"), relinkPhotoFolder: $("relinkPhotoFolder"), relinkBackgroundFolder: $("relinkBackgroundFolder"), relinkImageFiles: $("relinkImageFiles"),
+  downloadPng: $("downloadPng"), downloadPdf: $("downloadPdf"), downloadAllPngs: $("downloadAllPngs"), downloadAllPdf: $("downloadAllPdf"), status: $("status"), stage: $("stage"), previewBg: $("previewBg"), leftFrame: $("leftFrame"), rightFrame: $("rightFrame"),
+  leftTextPreview: $("leftTextPreview"), rightTextPreview: $("rightTextPreview"), leftTextContent: $("leftTextContent"), rightTextContent: $("rightTextContent"), bleedGuide: $("bleedGuide"), centerGuide: $("centerGuide"), bleedLabel: $("bleedLabel"), centerLabel: $("centerLabel"), canvasReadout: $("canvasReadout"), layoutReadout: $("layoutReadout"), previewMeta: $("previewMeta"), overviewGrid: $("overviewGrid")
+};
+function uid(prefix) { return `${prefix}-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`; }
+function mmToPx(mm) { return mm / 25.4 * SPEC.dpi; }
+function pxToMm(px) { return px / SPEC.dpi * 25.4; }
+function pctX(mm) { return `${mm / SPEC.widthMM * 100}%`; }
+function pctY(mm) { return `${mm / SPEC.heightMM * 100}%`; }
+function clamp(value, min, max, fallback = min) { const n = Number(value); if (!Number.isFinite(n)) return fallback; return Math.min(max, Math.max(min, n)); }
+function round(value, digits = 1) { const f = 10 ** digits; return Math.round(Number(value) * f) / f; }
+function quoteFamily(family) { const clean = String(family || "Arial").replace(/"/g, ""); return clean.includes(" ") ? `"${clean}"` : clean; }
+function setStatus(message) { els.status.textContent = message; }
+function setValueIfIdle(el, value) { if (el && document.activeElement !== el) el.value = value; }
+function axisTotalMM(axis = "x") { return axis === "y" ? SPEC.heightMM : SPEC.widthMM; }
+function mmToUnitValue(mm, unit = "mm", axis = "x") { if (unit === "px") return mmToPx(mm); if (unit === "pct") return mm / axisTotalMM(axis) * 100; return Number(mm); }
+function unitValueToMm(value, unit = "mm", axis = "x") { const n = Number(value); if (!Number.isFinite(n)) return NaN; if (unit === "px") return pxToMm(n); if (unit === "pct") return n / 100 * axisTotalMM(axis); return n; }
+function borderPxToUnitValue(px, unit = "px") { if (unit === "mm") return pxToMm(px); if (unit === "pct") return px / OUT.widthPx * 100; return Number(px); }
+function unitValueToBorderPx(value, unit = "px") { const n = Number(value); if (!Number.isFinite(n)) return NaN; if (unit === "mm") return mmToPx(n); if (unit === "pct") return n / 100 * OUT.widthPx; return n; }
+function unitStep(unit = "mm") { return unit === "px" ? "1" : "0.1"; }
+function displayDigits(unit = "mm") { return unit === "px" ? 0 : 2; }
+function displayUnitValue(value, unit = "mm") { return round(value, displayDigits(unit)); }
+function setUnitInputMeta(el, unit, min, max) { if (!el) return; el.step = unitStep(unit); el.min = String(displayUnitValue(min, unit)); el.max = String(displayUnitValue(max, unit)); }
+function setMMInputMeta(el, unit, axis, minMM, maxMM) { setUnitInputMeta(el, unit, mmToUnitValue(minMM, unit, axis), mmToUnitValue(maxMM, unit, axis)); }
+function setBorderInputMeta(el, unit, minPx, maxPx) { setUnitInputMeta(el, unit, borderPxToUnitValue(minPx, unit), borderPxToUnitValue(maxPx, unit)); }
+function currentImageUnit() { return currentPage().imageUnitMode || "mm"; }
+function currentTextBoxUnit() { return currentPage().textBoxUnitMode || "mm"; }
+function currentBorderUnit() { return currentPage().borderUnitMode || "px"; }
+function createPage(seed = {}) {
+  return { id: uid("page"), name: `画布 ${state.nextPageNumber++}`, backgroundDataUrl: "", backgroundName: "", leftDataUrl: "", leftName: "", rightDataUrl: "", rightName: "", leftText: "", rightText: "", ...baseSettings, ...seed };
+}
+function clonePage(page) {
+  const copy = JSON.parse(JSON.stringify(page));
+  copy.id = uid("page");
+  copy.name = `${page.name} 副本`;
+  return copy;
+}
+function currentPage() { return state.pages.find(page => page.id === state.currentPageId) || state.pages[0]; }
+function placeholderTextForSide(side) { return side === "right" ? "右图说明文字" : "左图说明文字"; }
+function isDefaultPlaceholderText(key, value) {
+  const text = String(value ?? "").trim();
+  return (key === "leftText" && text === placeholderTextForSide("left")) || (key === "rightText" && text === placeholderTextForSide("right"));
+}
+function normalizeHexColor(value, allowShort = true) {
+  const raw = String(value || "").trim().replace(/^#/, "").toLowerCase();
+  if (/^[0-9a-f]{6}$/.test(raw)) return `#${raw}`;
+  if (allowShort && /^[0-9a-f]{3}$/.test(raw)) return `#${raw.split("").map(ch => ch + ch).join("")}`;
+  return "";
+}
+function normalizeColorName(value) { return String(value || "").trim().toLowerCase().replace(/^xkcd\s*:?\s*/i, "").replace(/[_-]+/g, " ").replace(/\s+/g, " "); }
+function isSubsequenceMatch(textValue, query) { if (!query) return false; let index = 0; for (const ch of String(textValue || "")) { if (ch === query[index]) index += 1; if (index >= query.length) return true; } return false; }
+function findXkcdMatches(query) {
+  const normalized = normalizeColorName(query);
+  if (!normalized || normalized.startsWith("#")) return [];
+  const terms = normalized.split(" ").filter(Boolean);
+  return XKCD_COLORS.map(color => {
+    const name = normalizeColorName(color.name);
+    let score = 999;
+    if (name === normalized) score = 0;
+    else if (name.startsWith(normalized)) score = 1;
+    else if (name.includes(normalized)) score = 2;
+    else if (terms.length && terms.every(term => name.includes(term))) score = 3;
+    else if (normalized.length >= 3 && isSubsequenceMatch(name.replace(/\s/g, ""), normalized.replace(/\s/g, ""))) score = 4;
+    return { ...color, score };
+  }).filter(item => item.score < 999).sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+}
+function colorTarget(kind) { return kind === "border" ? { picker: els.borderColor, text: els.borderColorText, suggestions: els.borderColorSuggestions, key: "borderColor" } : { picker: els.textColor, text: els.textColorText, suggestions: els.textColorSuggestions, key: "textColor" }; }
+function hideColorSuggestions(kind) { const target = colorTarget(kind); if (target.suggestions) { target.suggestions.classList.add("hidden"); target.suggestions.innerHTML = ""; } }
+function renderColorSuggestions(kind, query, providedMatches) {
+  const target = colorTarget(kind);
+  if (!target.suggestions) return;
+  const matches = providedMatches || findXkcdMatches(query);
+  const raw = String(query || "").trim();
+  if (!raw || raw.startsWith("#") || !matches.length) { hideColorSuggestions(kind); return; }
+  target.suggestions.innerHTML = "";
+  matches.slice(0, 80).forEach(color => {
+    const option = document.createElement("button");
+    option.type = "button"; option.className = "xkcd-option"; option.title = `${color.name} ${color.hex}`;
+    option.innerHTML = `<span class="xkcd-swatch" style="background:${color.hex}"></span><span class="xkcd-name">${escapeHtml(color.name)}</span><span class="xkcd-hex">${color.hex}</span>`;
+    option.addEventListener("mousedown", event => event.preventDefault());
+    option.addEventListener("click", () => chooseSuggestedColor(kind, color));
+    target.suggestions.append(option);
+  });
+  target.suggestions.classList.remove("hidden");
+}
+function setResolvedColor(kind, hex, displayText = "") {
+  const safeHex = normalizeHexColor(hex, true);
+  if (!safeHex) return;
+  const page = currentPage();
+  const target = colorTarget(kind);
+  target.picker.value = safeHex;
+  if (document.activeElement !== target.text) target.text.value = displayText || safeHex;
+  target.text.classList.remove("invalid");
+  if (kind === "border") { page.borderAuto = false; page.borderColor = safeHex; els.borderAuto.checked = false; } else { page.textColor = safeHex; }
+  render();
+}
+function chooseSuggestedColor(kind, color) { const hex = normalizeHexColor(color.hex, true) || "#111827"; setResolvedColor(kind, hex, `${color.name} ${hex}`); hideColorSuggestions(kind); setStatus(`${kind === "border" ? "圆角框" : "文字"}颜色已设为 XKCD ${color.name}（${hex}）。`); }
+function evaluateColorText(raw, commit = false) {
+  const value = String(raw || "").trim();
+  const embeddedHex = value.match(/#[0-9a-f]{3}(?:[0-9a-f]{3})?/i)?.[0] || "";
+  const hex = normalizeHexColor(embeddedHex || value, true);
+  const matches = findXkcdMatches(value);
+  const exact = matches.find(item => normalizeColorName(item.name) === normalizeColorName(value));
+  const chosen = hex ? null : (exact || (commit ? matches[0] : null));
+  return { raw: value, hex, matches, exact, resolved: hex || chosen?.hex || "", display: hex ? (normalizeHexColor(hex, true) || value) : chosen ? `${chosen.name} ${chosen.hex}` : value };
+}
+function handleColorTextInput(kind, commit = false) {
+  const target = colorTarget(kind);
+  const info = evaluateColorText(target.text.value, commit);
+  renderColorSuggestions(kind, info.raw, info.matches);
+  const invalid = Boolean(info.raw) && !info.hex && !info.exact && !(commit && info.matches.length);
+  target.text.classList.toggle("invalid", invalid);
+  if (info.resolved) {
+    setResolvedColor(kind, info.resolved, commit ? info.display : (info.hex ? info.resolved : info.display));
+    if (commit) hideColorSuggestions(kind);
+  } else if (commit) {
+    if (!info.raw) { target.text.value = currentPage()[target.key]; target.text.classList.remove("invalid"); hideColorSuggestions(kind); }
+    else setStatus(`请输入有效的 ${kind === "border" ? "圆角框" : "文字"}颜色：hex 或 XKCD 颜色名。`);
+  }
+}
+function getLayout(page = currentPage()) {
+  const half = SPEC.widthMM / 2;
+  const halfInner = half - SPEC.bleedMM;
+  const maxSize = halfInner;
+  const size = clamp(page.imageSizeMM, 8, maxSize, baseSettings.imageSizeMM);
+  const gap = Math.max(0, (halfInner - size) / 2);
+  const maxTopGap = Math.max(0, SPEC.heightMM - SPEC.bleedMM * 2 - size);
+  const imageTopGap = clamp(page.imageTopGapMM, 0, maxTopGap, baseSettings.imageTopGapMM);
+  const imageY = SPEC.bleedMM + imageTopGap;
+  const leftX = SPEC.bleedMM + gap;
+  const rightX = half + gap;
+  const left = { x: leftX, y: imageY, w: size, h: size };
+  const right = { x: rightX, y: imageY, w: size, h: size };
+  const textW = clamp(page.textWidthMM, 8, halfInner, baseSettings.textWidthMM);
+  const textH = clamp(page.textHeightMM, 4, SPEC.heightMM - SPEC.bleedMM * 2, baseSettings.textHeightMM);
+  const maxTextTopGap = Math.max(0, SPEC.heightMM - SPEC.bleedMM * 2 - textH);
+  const textTopGap = clamp(page.textTopMM, 0, maxTextTopGap, baseSettings.textTopMM);
+  const textY = SPEC.bleedMM + textTopGap;
+  const leftCenter = left.x + left.w / 2;
+  const rightCenter = right.x + right.w / 2;
+  const leftTextX = clamp(leftCenter - textW / 2, SPEC.bleedMM, half - textW, SPEC.bleedMM);
+  const rightTextX = clamp(rightCenter - textW / 2, half, SPEC.widthMM - SPEC.bleedMM - textW, half);
+  return { size, gap, maxSize, maxTopGap, maxTextTopGap, left, right, leftText: { x: leftTextX, y: textY, w: textW, h: textH }, rightText: { x: rightTextX, y: textY, w: textW, h: textH } };
+}
+function renderFontOptions() {
+  const selected = currentPage().fontFamily || "Microsoft YaHei";
+  els.fontFamily.innerHTML = "";
+  const options = [...fontOptions, ...customFonts];
+  if (selected && !options.some(([, family]) => family === selected)) options.push([`未加载字体 / ${selected}`, selected]);
+  options.forEach(([name, family]) => { const opt = document.createElement("option"); opt.value = family; opt.textContent = name; opt.style.fontFamily = quoteFamily(family); els.fontFamily.append(opt); });
+  els.fontFamily.value = selected;
+  if (els.fontFamily.value !== selected) currentPage().fontFamily = els.fontFamily.value || "Arial";
+}
+function syncControls() {
+  const page = currentPage(), layout = getLayout(page);
+  const imageUnit = currentImageUnit(), borderUnit = currentBorderUnit(), textUnit = currentTextBoxUnit();
+  els.backgroundColor.value = normalizeHexColor(page.backgroundColor, true) || "#ffffff";
+  if (els.toggleBackgroundEdit) {
+    const unlocked = Boolean(page.backgroundEditUnlocked);
+    els.toggleBackgroundEdit.textContent = unlocked ? "背景编辑：解锁" : "背景编辑：锁定";
+    els.toggleBackgroundEdit.classList.toggle("active", unlocked);
+    els.toggleBackgroundEdit.title = unlocked ? "背景编辑已解锁：可拖动背景，滚轮缩放背景" : "背景编辑已锁定：打开后才可拖动或滚轮缩放背景";
+  }
+  els.showGuides.checked = Boolean(page.showGuides);
+  els.imageUnitMode.value = imageUnit;
+  setMMInputMeta(els.imageSizeMM, imageUnit, "x", 16, layout.maxSize);
+  setMMInputMeta(els.imageTopGapMM, imageUnit, "y", 0, layout.maxTopGap);
+  setValueIfIdle(els.imageSizeMM, displayUnitValue(mmToUnitValue(page.imageSizeMM, imageUnit, "x"), imageUnit));
+  setValueIfIdle(els.imageTopGapMM, displayUnitValue(mmToUnitValue(page.imageTopGapMM, imageUnit, "y"), imageUnit));
+  els.imageFit.value = page.imageFit;
+  els.borderAuto.checked = Boolean(page.borderAuto);
+  els.borderColor.value = normalizeHexColor(page.borderColor, true) || "#111827"; setValueIfIdle(els.borderColorText, page.borderColor); els.borderColorText.classList.remove("invalid");
+  els.borderUnitMode.value = borderUnit;
+  setBorderInputMeta(els.borderWidthPx, borderUnit, 0, 160);
+  setBorderInputMeta(els.borderRadiusPx, borderUnit, 0, 420);
+  setValueIfIdle(els.borderWidthPx, displayUnitValue(borderPxToUnitValue(page.borderWidthPx, borderUnit), borderUnit));
+  setValueIfIdle(els.borderRadiusPx, displayUnitValue(borderPxToUnitValue(page.borderRadiusPx, borderUnit), borderUnit));
+  if (document.activeElement !== els.leftTextInput) els.leftTextInput.value = page.leftText;
+  if (document.activeElement !== els.rightTextInput) els.rightTextInput.value = page.rightText;
+  els.textBoxUnitMode.value = textUnit;
+  setMMInputMeta(els.textTopMM, textUnit, "y", 0, layout.maxTextTopGap);
+  setMMInputMeta(els.textWidthMM, textUnit, "x", 8, SPEC.widthMM / 2 - SPEC.bleedMM);
+  setMMInputMeta(els.textHeightMM, textUnit, "y", 4, 80);
+  setValueIfIdle(els.textTopMM, displayUnitValue(mmToUnitValue(page.textTopMM, textUnit, "y"), textUnit));
+  setValueIfIdle(els.textWidthMM, displayUnitValue(mmToUnitValue(page.textWidthMM, textUnit, "x"), textUnit));
+  setValueIfIdle(els.textHeightMM, displayUnitValue(mmToUnitValue(page.textHeightMM, textUnit, "y"), textUnit));
+  els.fontFamily.value = page.fontFamily; setValueIfIdle(els.fontSizePx, page.fontSizePx); setValueIfIdle(els.lineHeight, page.lineHeight);
+  els.textColor.value = normalizeHexColor(page.textColor, true) || "#111827"; setValueIfIdle(els.textColorText, page.textColor); els.textColorText.classList.remove("invalid");
+  els.textAlign.value = page.textAlign; els.textBgColor.value = normalizeHexColor(page.textBgColor, true) || "#ffffff"; setValueIfIdle(els.textBgOpacity, page.textBgOpacity);
+}
+
+function renderPageList() {
+  els.pageList.innerHTML = "";
+  state.pages.forEach((page, index) => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "page-button" + (page.id === state.currentPageId ? " active" : ""); btn.draggable = true; btn.dataset.pageId = page.id;
+    btn.innerHTML = `<strong>${index + 1}. ${escapeHtml(page.name)}</strong><span>左图：${escapeHtml(page.leftName || "未上传")} · 右图：${escapeHtml(page.rightName || "未上传")}</span>`;
+    btn.addEventListener("click", () => { state.currentPageId = page.id; render(); setStatus(`已切换到${page.name}。`); });
+    attachDragSort(btn, page.id);
+    els.pageList.append(btn);
+  });
+}
+function applyRectStyle(el, rectMM) { el.style.left = pctX(rectMM.x); el.style.top = pctY(rectMM.y); el.style.width = pctX(rectMM.w); el.style.height = pctY(rectMM.h); }
+function setFrameContent(frame, dataUrl, label, fit) {
+  frame.innerHTML = "";
+  if (dataUrl) { const img = document.createElement("img"); img.src = dataUrl; img.alt = label; img.style.objectFit = fit; frame.append(img); }
+  else { const div = document.createElement("div"); div.className = "photo-placeholder"; div.innerHTML = `点击上传<br>${label}`; frame.append(div); }
+}
+function applyBackgroundPreview(page) {
+  const scale = clamp(page.backgroundScalePct, 20, 500, 100);
+  const stageW = Math.max(1, els.stage.clientWidth || 980);
+  const stageH = Math.max(1, els.stage.clientHeight || stageW * SPEC.heightMM / SPEC.widthMM);
+  const x = clamp(page.backgroundOffsetXPct, -200, 200, 0) / 100 * stageW;
+  const y = clamp(page.backgroundOffsetYPct, -200, 200, 0) / 100 * stageH;
+  els.previewBg.style.transform = `translate(${x}px, ${y}px) scale(${scale / 100})`;
+}
+function hexToRgb(hex) { const safe = normalizeHexColor(hex, true) || "#ffffff"; const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(safe); return m ? { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) } : { r:255, g:255, b:255 }; }
+function rgba(hex, opacity) { const { r,g,b } = hexToRgb(hex); return `rgba(${r}, ${g}, ${b}, ${clamp(opacity,0,1,0)})`; }
+function render() {
+  const page = currentPage(); if (!page) return;
+  renderFontOptions(); renderPageList(); syncControls();
+  const layout = getLayout(page);
+  els.stage.style.background = page.backgroundColor || "#ffffff";
+  els.stage.classList.toggle("background-editing", Boolean(page.backgroundEditUnlocked && page.backgroundDataUrl));
+  if (page.backgroundDataUrl) { els.previewBg.src = page.backgroundDataUrl; els.previewBg.hidden = false; applyBackgroundPreview(page); } else { els.previewBg.removeAttribute("src"); els.previewBg.hidden = true; els.previewBg.style.transform = "none"; }
+  setFrameContent(els.leftFrame, page.leftDataUrl, "左图", page.imageFit); setFrameContent(els.rightFrame, page.rightDataUrl, "右图", page.imageFit);
+  [ [els.leftFrame, layout.left], [els.rightFrame, layout.right] ].forEach(([frame, rect]) => {
+    applyRectStyle(frame, rect);
+    const stageW = Math.max(1, els.stage.clientWidth || 980);
+    frame.style.borderWidth = `${Math.max(0, Math.round(clamp(page.borderWidthPx,0,160,0) / OUT.widthPx * stageW))}px`;
+    frame.style.borderStyle = "solid"; frame.style.borderColor = page.borderColor;
+    frame.style.borderRadius = `${Math.max(0, Math.round(clamp(page.borderRadiusPx,0,420,0) / OUT.widthPx * stageW))}px`;
+  });
+  applyTextPreview(els.leftTextPreview, layout.leftText, page.leftText, page); applyTextPreview(els.rightTextPreview, layout.rightText, page.rightText, page);
+  const bleed = { x: SPEC.bleedMM, y: SPEC.bleedMM, w: SPEC.widthMM - SPEC.bleedMM * 2, h: SPEC.heightMM - SPEC.bleedMM * 2 };
+  applyRectStyle(els.bleedGuide, bleed); els.bleedLabel.style.left = pctX(bleed.x); els.bleedLabel.style.top = pctY(bleed.y); els.centerLabel.style.left = "50%"; els.centerLabel.style.top = pctY(SPEC.bleedMM);
+  [els.bleedGuide, els.centerGuide, els.bleedLabel, els.centerLabel].forEach(el => { el.style.display = page.showGuides ? "block" : "none"; });
+  els.canvasReadout.innerHTML = `<strong>画布</strong>：${SPEC.widthMM}×${SPEC.heightMM}mm @ ${SPEC.dpi}dpi = <strong>${OUT.widthPx}×${OUT.heightPx}px</strong><br><strong>出血线</strong>：${SPEC.bleedMM}mm，出血线内 ${SPEC.widthMM - SPEC.bleedMM * 2}×${SPEC.heightMM - SPEC.bleedMM * 2}mm。`;
+  els.layoutReadout.innerHTML = `图片边长 <strong>${round(layout.size)}mm</strong>；左右图框精确对称：外侧距出血线 = 内侧距中线 = <strong>${round(layout.gap)}mm</strong>。`;
+  const bgUnlocked = Boolean(page.backgroundEditUnlocked);
+  els.backgroundReadout.innerHTML = page.backgroundDataUrl ? `背景编辑<strong>${bgUnlocked ? "已解锁" : "已锁定"}</strong>：${bgUnlocked ? "可拖动预览区空白处移动，滚轮缩放。" : "打开“背景编辑：解锁”后才可拖动或缩放。"} 当前偏移 <strong>${round(page.backgroundOffsetXPct, 2)}%</strong> / <strong>${round(page.backgroundOffsetYPct, 2)}%</strong>，缩放 <strong>${round(page.backgroundScalePct, 1)}%</strong>。` : "背景编辑默认锁定。上传背景后，点击“背景编辑：解锁”才可拖动或滚轮缩放。";
+  els.previewMeta.innerHTML = `<button type="button" class="canvas-name-button" data-action="rename-current" title="点击改名，导出文件名会使用这个名称">${escapeHtml(page.name)}</button><span>完整画布预览：点击画布空白处可改名；红色虚线为 3mm 出血线，蓝色虚线为中线；导出 PNG/ZIP 不包含辅助线。</span><span>左图：${escapeHtml(page.leftName || "未上传")} · 右图：${escapeHtml(page.rightName || "未上传")} · 背景：${escapeHtml(page.backgroundName || "纯色")}</span>`;
+  scheduleOverviewRender();
+}
+function applyTextPreview(el, rect, textValue, page) {
+  applyRectStyle(el, rect);
+  const content = el.querySelector(".text-content");
+  if (content) content.dataset.placeholder = el.id === "rightTextPreview" ? placeholderTextForSide("right") : placeholderTextForSide("left");
+  const displayText = String(textValue || "");
+  if (content && document.activeElement !== content && content.textContent !== displayText) content.textContent = displayText;
+  const stageW = Math.max(1, els.stage.clientWidth || 980);
+  el.style.background = rgba(page.textBgColor, page.textBgOpacity);
+  if (!content) return;
+  content.style.fontFamily = quoteFamily(page.fontFamily);
+  content.style.fontSize = `${Math.max(7, Math.round(page.fontSizePx / OUT.widthPx * stageW))}px`;
+  content.style.lineHeight = String(page.lineHeight);
+  content.style.color = page.textColor;
+  content.style.textAlign = page.textAlign;
+  content.style.padding = `${Math.max(2, Math.round(10 / OUT.widthPx * stageW))}px`;
+}
+function scheduleOverviewRender() { clearTimeout(state.overviewRenderTimer); state.overviewRenderTimer = setTimeout(() => renderOverviewGrid().catch(err => console.error(err)), 100); }
+async function renderOverviewGrid() {
+  const token = ++state.overviewRenderToken;
+  els.overviewGrid.innerHTML = "";
+  for (let index = 0; index < state.pages.length; index++) {
+    const page = state.pages[index];
+    const card = document.createElement("article"); card.className = "overview-item" + (page.id === state.currentPageId ? " active" : ""); card.draggable = true; card.dataset.pageId = page.id; attachDragSort(card, page.id);
+    const wrap = document.createElement("div"); wrap.className = "overview-thumb-wrap"; const ph = document.createElement("div"); ph.className = "overview-placeholder"; ph.textContent = "正在生成预览..."; wrap.append(ph);
+    const body = document.createElement("div"); body.className = "overview-body"; body.innerHTML = `<div class="overview-title"><strong>${index + 1}. ${escapeHtml(page.name)}</strong><span>左图：${escapeHtml(page.leftName || "未上传")} · 右图：${escapeHtml(page.rightName || "未上传")}</span></div>`;
+    const actions = document.createElement("div"); actions.className = "overview-actions";
+    const selectBtn = document.createElement("button"); selectBtn.type = "button"; selectBtn.textContent = page.id === state.currentPageId ? "当前画布" : "设为当前"; if (page.id === state.currentPageId) selectBtn.classList.add("active"); selectBtn.addEventListener("click", () => { state.currentPageId = page.id; render(); setStatus(`已切换到${page.name}。`); });
+    const exportBtn = document.createElement("button"); exportBtn.type = "button"; exportBtn.className = "primary"; exportBtn.textContent = "单独导出 PNG"; exportBtn.addEventListener("click", () => exportPage(page).catch(err => setStatus(err.message)));
+    const exportPdfBtn = document.createElement("button"); exportPdfBtn.type = "button"; exportPdfBtn.textContent = "单独导出 PDF"; exportPdfBtn.addEventListener("click", () => exportPagePdf(page).catch(err => setStatus(err.message)));
+    actions.append(selectBtn, exportBtn, exportPdfBtn); body.append(actions); card.append(wrap, body); els.overviewGrid.append(card);
+    const canvas = await renderExportCanvas(page, Boolean(page.showGuides), 0.22);
+    if (token !== state.overviewRenderToken) return;
+    const img = document.createElement("img"); img.className = "overview-thumb"; img.alt = page.name; img.src = canvas.toDataURL("image/png"); wrap.innerHTML = ""; wrap.append(img);
+  }
+}
+function escapeHtml(value) { return String(value || "").replace(/[&<>'"]/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" }[char])); }
+function fileToDataUrl(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); }
+function imageDimensions(src) { return new Promise((resolve, reject) => { const image = new Image(); image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight }); image.onerror = reject; image.src = src; }); }
+function loadImage(src) { return new Promise((resolve, reject) => { if (!src) return reject(new Error("No image")); const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = src; }); }
+function refPrefixForSide(side) { return side === "background" ? "background" : side; }
+function normalizedAssetPath(value) { return String(value || "").replace(/\\/g, "/").replace(/^\.\//, "").trim().toLowerCase(); }
+function assetBaseName(value) { return normalizedAssetPath(value).split("/").filter(Boolean).pop() || ""; }
+function setImageReference(page, side, file) {
+  const prefix = refPrefixForSide(side);
+  page[`${prefix}Name`] = file?.name || "";
+  page[`${prefix}Path`] = file ? (file.webkitRelativePath || file.name || "") : "";
+  page[`${prefix}Size`] = file ? Number(file.size) || 0 : 0;
+  page[`${prefix}Type`] = file?.type || "";
+  page[`${prefix}LastModified`] = file ? Number(file.lastModified) || 0 : 0;
+}
+function clearImageReference(page, side) {
+  const prefix = refPrefixForSide(side);
+  [`${prefix}Name`, `${prefix}Path`, `${prefix}Type`].forEach(key => page[key] = "");
+  [`${prefix}Size`, `${prefix}LastModified`].forEach(key => page[key] = 0);
+}
+async function setImageFromFile(page, side, file, options = {}) {
+  if (!file || !file.type.startsWith("image/")) return false;
+  const dataUrl = await fileToDataUrl(file);
+  if (side === "left") page.leftDataUrl = dataUrl;
+  else if (side === "right") page.rightDataUrl = dataUrl;
+  else page.backgroundDataUrl = dataUrl;
+  setImageReference(page, side, file);
+  if (side === "background" && options.resetBackgroundView !== false) {
+    page.backgroundOffsetXPct = 0; page.backgroundOffsetYPct = 0; page.backgroundScalePct = 100;
+  }
+  if (side === "background" && page.borderAuto) page.borderColor = await pickDarkestCanvasColor(page);
+  return true;
+}
+async function setImageFromInput(input, side) {
+  const file = input.files && input.files[0]; if (!file || !file.type.startsWith("image/")) return;
+  const ok = await setImageFromFile(currentPage(), side, file);
+  input.value = ""; render(); if (ok) setStatus(`已上传：${file.name}`);
+}
+function drawImageFit(ctx, image, x, y, w, h, fit) {
+  if (!image || !w || !h) return;
+  if (fit === "contain") { const scale = Math.min(w / image.naturalWidth, h / image.naturalHeight); const dw = image.naturalWidth * scale, dh = image.naturalHeight * scale; ctx.drawImage(image, x + (w-dw)/2, y + (h-dh)/2, dw, dh); return; }
+  const scale = Math.max(w / image.naturalWidth, h / image.naturalHeight); const sw = w / scale, sh = h / scale, sx = (image.naturalWidth - sw) / 2, sy = (image.naturalHeight - sh) / 2; ctx.drawImage(image, sx, sy, sw, sh, x, y, w, h);
+}
+function drawBackgroundImage(ctx, image, page, w, h) {
+  if (!image || !w || !h) return;
+  const scale = Math.max(w / image.naturalWidth, h / image.naturalHeight) * clamp(page.backgroundScalePct, 20, 500, 100) / 100;
+  const dw = image.naturalWidth * scale, dh = image.naturalHeight * scale;
+  const x = (w - dw) / 2 + clamp(page.backgroundOffsetXPct, -200, 200, 0) / 100 * w;
+  const y = (h - dh) / 2 + clamp(page.backgroundOffsetYPct, -200, 200, 0) / 100 * h;
+  ctx.drawImage(image, x, y, dw, dh);
+}
+function roundedRectPath(ctx, x, y, w, h, radius) { const r = Math.min(radius, w/2, h/2); ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); }
+async function pickDarkestCanvasColor(page = currentPage()) {
+  const canvas = document.createElement("canvas"); canvas.width = 286; canvas.height = 146; const ctx = canvas.getContext("2d", { willReadFrequently: true }); ctx.fillStyle = page.backgroundColor || "#ffffff"; ctx.fillRect(0,0,286,146); const bg = await loadImage(page.backgroundDataUrl).catch(() => null); if (bg) drawBackgroundImage(ctx, bg, page, 286, 146); const data = ctx.getImageData(0,0,286,146).data; let best = { lum: Infinity, r: 17, g: 24, b: 39 }; for (let i=0;i<data.length;i+=4) { if (data[i+3] < 20) continue; const r=data[i], g=data[i+1], b=data[i+2]; const lum=0.2126*r+0.7152*g+0.0722*b; if (lum < best.lum) best = { lum, r, g, b }; } return rgbToHex(best.r,best.g,best.b); }
+function rgbToHex(r,g,b) { return "#" + [r,g,b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2,"0")).join(""); }
+function wrapText(ctx, text, maxWidth) {
+  const paragraphs = String(text || "").replace(/\r/g, "").split("\n"); const lines = [];
+  for (const paragraph of paragraphs) { if (!paragraph) { lines.push(""); continue; } const tokens = paragraph.match(/[\u4e00-\u9fff]|[^\u4e00-\u9fff\s]+|\s+/g) || [paragraph]; let current = ""; for (const token of tokens) { const next = current + token; if (ctx.measureText(next).width <= maxWidth || !current) current = next; else { lines.push(current.trimEnd()); current = token.trimStart(); } } lines.push(current.trimEnd()); }
+  return lines;
+}
+function drawFrame(ctx, image, rectMM, page) {
+  const x = mmToPx(rectMM.x), y = mmToPx(rectMM.y), size = mmToPx(rectMM.w); const bw = Math.min(clamp(page.borderWidthPx,0,160,0), Math.max(0, size/2 - 1)); const radius = clamp(page.borderRadiusPx,0,420,0);
+  ctx.save(); roundedRectPath(ctx, x + bw, y + bw, size - bw*2, size - bw*2, Math.max(0, radius - bw)); ctx.clip(); if (page.imageFit === "contain") { ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fillRect(x+bw,y+bw,size-bw*2,size-bw*2); } if (image) drawImageFit(ctx, image, x+bw, y+bw, size-bw*2, size-bw*2, page.imageFit); else { ctx.fillStyle = "rgba(255,255,255,.65)"; ctx.fillRect(x+bw,y+bw,size-bw*2,size-bw*2); } ctx.restore();
+  if (bw > 0) { ctx.save(); roundedRectPath(ctx, x + bw/2, y + bw/2, size - bw, size - bw, Math.max(0, radius - bw/2)); ctx.lineWidth = bw; ctx.strokeStyle = page.borderColor; ctx.stroke(); ctx.restore(); }
+}
+function drawTextBox(ctx, rectMM, textValue, page) {
+  const exportText = String(textValue || "");
+  const x = mmToPx(rectMM.x), y = mmToPx(rectMM.y), w = mmToPx(rectMM.w), h = mmToPx(rectMM.h); const pad = Math.max(12, Math.round(page.fontSizePx * .18)); ctx.save();
+  if (Number(page.textBgOpacity) > 0) { ctx.fillStyle = rgba(page.textBgColor, page.textBgOpacity); roundedRectPath(ctx, x, y, w, h, 14); ctx.fill(); }
+  if (!exportText.trim()) { ctx.restore(); return; }
+  ctx.font = `${Math.round(page.fontSizePx)}px ${quoteFamily(page.fontFamily)}`; ctx.fillStyle = page.textColor; ctx.textBaseline = "top";
+  const lineHeightPx = Math.max(1, page.fontSizePx * page.lineHeight); const lines = wrapText(ctx, exportText, Math.max(20, w - pad*2)); let cursorY = y + pad;
+  for (const line of lines) { if (cursorY > y + h - pad) break; let tx = x + pad; ctx.textAlign = "left"; if (page.textAlign === "center") { tx = x + w/2; ctx.textAlign = "center"; } else if (page.textAlign === "right") { tx = x + w - pad; ctx.textAlign = "right"; } ctx.fillText(line, tx, cursorY); cursorY += lineHeightPx; }
+  ctx.restore();
+}
+async function renderExportCanvas(page = currentPage(), includeGuides = false, scale = 1) {
+  if (document.fonts && document.fonts.ready) await Promise.race([document.fonts.ready.catch(() => {}), new Promise(resolve => setTimeout(resolve, 1000))]); const canvas = document.createElement("canvas"); canvas.width = Math.round(OUT.widthPx * scale); canvas.height = Math.round(OUT.heightPx * scale); const ctx = canvas.getContext("2d"); if (scale !== 1) ctx.scale(scale, scale);
+  ctx.fillStyle = page.backgroundColor || "#ffffff"; ctx.fillRect(0,0,OUT.widthPx,OUT.heightPx); const [bg,left,right] = await Promise.all([loadImage(page.backgroundDataUrl).catch(()=>null), loadImage(page.leftDataUrl).catch(()=>null), loadImage(page.rightDataUrl).catch(()=>null)]); if (bg) drawBackgroundImage(ctx, bg, page, OUT.widthPx, OUT.heightPx); const layout = getLayout(page); drawFrame(ctx,left,layout.left,page); drawFrame(ctx,right,layout.right,page); drawTextBox(ctx,layout.leftText,page.leftText,page); drawTextBox(ctx,layout.rightText,page.rightText,page); if (includeGuides) drawGuides(ctx); return canvas;
+}
+function drawGuides(ctx) { ctx.save(); ctx.setLineDash([14,10]); ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255,59,48,.86)"; ctx.strokeRect(OUT.bleedPx, OUT.bleedPx, OUT.widthPx - OUT.bleedPx*2, OUT.heightPx - OUT.bleedPx*2); ctx.strokeStyle = "rgba(0,122,255,.84)"; ctx.beginPath(); ctx.moveTo(OUT.widthPx/2,0); ctx.lineTo(OUT.widthPx/2,OUT.heightPx); ctx.stroke(); ctx.restore(); }
+function canvasToBlob(canvas) { return new Promise(resolve => canvas.toBlob(resolve, "image/png")); }
+function downloadBlob(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = filename; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+function safeFilename(value) { const clean = String(value || "画布").trim().replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, " ").slice(0,80); return clean || "画布"; }
+function exportPngName(page) { return `${safeFilename(page.name)}.png`; }
+function uniqueZipFilename(baseName, used) { let name = `${safeFilename(baseName)}.png`; let index = 2; while (used.has(name)) name = `${safeFilename(baseName)} (${index++}).png`; used.add(name); return name; }
+function makeCrcTable() { const table = new Uint32Array(256); for (let n=0;n<256;n++) { let c=n; for (let k=0;k<8;k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; table[n]=c>>>0; } return table; }
+const CRC_TABLE = makeCrcTable();
+function crc32(bytes) { let c=0xffffffff; for (let i=0;i<bytes.length;i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+function u32be(value) { return new Uint8Array([(value>>>24)&255,(value>>>16)&255,(value>>>8)&255,value&255]); }
+function chunk(type, data) { const typeBytes = new TextEncoder().encode(type); const output = new Uint8Array(12 + data.length); output.set(u32be(data.length),0); output.set(typeBytes,4); output.set(data,8); output.set(u32be(crc32(output.slice(4,8+data.length))),8+data.length); return output; }
+function addOrReplacePngDpi(pngBytes, dpi) { const ppm = Math.round(dpi / .0254); const phys = new Uint8Array(9); phys.set(u32be(ppm),0); phys.set(u32be(ppm),4); phys[8]=1; const physChunk = chunk("pHYs", phys); const out=[pngBytes.slice(0,8)]; let offset=8, inserted=false; while (offset < pngBytes.length) { const len=(pngBytes[offset]<<24)|(pngBytes[offset+1]<<16)|(pngBytes[offset+2]<<8)|pngBytes[offset+3]; const type=String.fromCharCode(pngBytes[offset+4],pngBytes[offset+5],pngBytes[offset+6],pngBytes[offset+7]); const full=pngBytes.slice(offset, offset+12+len); offset += 12+len; if (type === "pHYs") { if (!inserted) { out.push(physChunk); inserted = true; } continue; } out.push(full); if (type === "IHDR" && !inserted) { out.push(physChunk); inserted = true; } } return joinParts(out); }
+function u16le(value) { return new Uint8Array([value & 255, (value >>> 8) & 255]); }
+function u32le(value) { return new Uint8Array([value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255]); }
+function joinParts(parts) { const total = parts.reduce((s,p)=>s+p.length,0); const out = new Uint8Array(total); let off=0; for (const p of parts) { out.set(p, off); off += p.length; } return out; }
+function dosDateTime(date = new Date()) { const year = Math.max(1980, date.getFullYear()); return { time: ((date.getHours()&31)<<11)|((date.getMinutes()&63)<<5)|Math.floor(date.getSeconds()/2), date: (((year-1980)&127)<<9)|(((date.getMonth()+1)&15)<<5)|(date.getDate()&31) }; }
+function createStoredZip(files) { const enc = new TextEncoder(); const local=[], central=[]; let offset=0; files.forEach(file => { const name = enc.encode(file.name); const data = file.bytes instanceof Uint8Array ? file.bytes : new Uint8Array(file.bytes); const crc = crc32(data); const dt = dosDateTime(file.date || new Date()); const lh = joinParts([u32le(0x04034b50),u16le(20),u16le(0),u16le(0),u16le(dt.time),u16le(dt.date),u32le(crc),u32le(data.length),u32le(data.length),u16le(name.length),u16le(0),name,data]); local.push(lh); central.push(joinParts([u32le(0x02014b50),u16le(20),u16le(20),u16le(0),u16le(0),u16le(dt.time),u16le(dt.date),u32le(crc),u32le(data.length),u32le(data.length),u16le(name.length),u16le(0),u16le(0),u16le(0),u16le(0),u32le(0),u32le(offset),name])); offset += lh.length; }); const cd = joinParts(central); const ld = joinParts(local); const eocd = joinParts([u32le(0x06054b50),u16le(0),u16le(0),u16le(files.length),u16le(files.length),u32le(cd.length),u32le(ld.length),u16le(0)]); return joinParts([ld,cd,eocd]); }
+async function exportPage(page = currentPage()) { setStatus(`正在生成 ${page.name}：286×146mm / 300dpi PNG...`); const canvas = await renderExportCanvas(page, false, 1); const blob = await canvasToBlob(canvas); const bytes = addOrReplacePngDpi(new Uint8Array(await blob.arrayBuffer()), SPEC.dpi); downloadBlob(new Blob([bytes], { type: "image/png" }), exportPngName(page)); setStatus(`已导出 ${exportPngName(page)}：${OUT.widthPx}×${OUT.heightPx}px，并写入 300dpi 元数据。`); }
+async function exportAllPages() { setStatus(`正在生成全部 ${state.pages.length} 个 300dpi 画布并打包 ZIP...`); const files=[], usedNames=new Set(); for (let i=0;i<state.pages.length;i++) { const page=state.pages[i]; setStatus(`正在生成 ${page.name}（${i+1}/${state.pages.length}）...`); const canvas=await renderExportCanvas(page,false,1); const blob=await canvasToBlob(canvas); const bytes=addOrReplacePngDpi(new Uint8Array(await blob.arrayBuffer()), SPEC.dpi); files.push({ name: uniqueZipFilename(page.name, usedNames), bytes, date: new Date() }); } downloadBlob(new Blob([createStoredZip(files)], { type: "application/zip" }), "全部画布.zip"); setStatus(`已导出 ZIP：共 ${state.pages.length} 个 300dpi PNG；每个文件名直接使用对应画布名称。`); }
+function exportPdfName(page) { return `${safeFilename(page.name)}.pdf`; }
+function base64ToBytes(base64) { const binary = atob(base64); const bytes = new Uint8Array(binary.length); for (let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i); return bytes; }
+function canvasToJpegBytes(canvas, quality = 0.98) { return base64ToBytes(canvas.toDataURL("image/jpeg", quality).split(",")[1] || ""); }
+function pdfString(value) { return String(value || "").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)").replace(/[\r\n]+/g, " ").slice(0, 160); }
+function pdfNumber(value) { const fixed = Number(value).toFixed(4).replace(/\.?0+$/, ""); return fixed === "-0" || fixed === "" ? "0" : fixed; }
+function concatUint8(parts) { const total = parts.reduce((sum, part) => sum + part.length, 0); const out = new Uint8Array(total); let offset = 0; for (const part of parts) { out.set(part, offset); offset += part.length; } return out; }
+function createImagePdf(images, title = "画布导出") {
+  const enc = new TextEncoder();
+  const objects = [];
+  const pageW = SPEC.widthMM / 25.4 * 72;
+  const pageH = SPEC.heightMM / 25.4 * 72;
+  const addAsciiObject = text => objects.push(enc.encode(text));
+  const addBinaryObject = (prefix, bytes, suffix = "\nendstream") => objects.push(concatUint8([enc.encode(prefix), bytes, enc.encode(suffix)]));
+  const catalogId = 1, pagesId = 2, infoId = 3;
+  const pageIds = [], contentIds = [], imageIds = [];
+  let nextId = 4;
+  images.forEach(() => { pageIds.push(nextId++); contentIds.push(nextId++); imageIds.push(nextId++); });
+  addAsciiObject(`<< /Type /Catalog /Pages ${pagesId} 0 R >>`);
+  addAsciiObject(`<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map(id => `${id} 0 R`).join(" ")}] >>`);
+  addAsciiObject(`<< /Title (${pdfString(title)}) /Creator (286x146mm Canvas Tool) /Producer (Browser PDF Export) /CreationDate (D:${new Date().toISOString().replace(/[-:T]/g, "").slice(0,14)}) >>`);
+  images.forEach((image, index) => {
+    const pageId = pageIds[index], contentId = contentIds[index], imageId = imageIds[index], imageName = `Im${index + 1}`;
+    addAsciiObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pdfNumber(pageW)} ${pdfNumber(pageH)}] /TrimBox [0 0 ${pdfNumber(pageW)} ${pdfNumber(pageH)}] /BleedBox [0 0 ${pdfNumber(pageW)} ${pdfNumber(pageH)}] /Resources << /XObject << /${imageName} ${imageId} 0 R >> /ProcSet [/PDF /ImageC] >> /Contents ${contentId} 0 R >>`);
+    const commands = `q\n${pdfNumber(pageW)} 0 0 ${pdfNumber(pageH)} 0 0 cm\n/${imageName} Do\nQ\n`;
+    addAsciiObject(`<< /Length ${enc.encode(commands).length} >>\nstream\n${commands}endstream`);
+    addBinaryObject(`<< /Type /XObject /Subtype /Image /Width ${image.widthPx} /Height ${image.heightPx} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.bytes.length} >>\nstream\n`, image.bytes);
+  });
+  const parts = [enc.encode("%PDF-1.4\n%\xFF\xFF\xFF\xFF\n")];
+  const offsets = [0];
+  objects.forEach((obj, index) => {
+    offsets[index + 1] = parts.reduce((sum, part) => sum + part.length, 0);
+    parts.push(enc.encode(`${index + 1} 0 obj\n`), obj, enc.encode("\nendobj\n"));
+  });
+  const xrefOffset = parts.reduce((sum, part) => sum + part.length, 0);
+  let xref = `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (let i=1;i<=objects.length;i++) xref += `${String(offsets[i]).padStart(10,"0")} 00000 n \n`;
+  xref += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R /Info ${infoId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  parts.push(enc.encode(xref));
+  return concatUint8(parts);
+}
+async function pageToPdfImage(page, index = 0, total = 1) { if (total > 1) setStatus(`正在生成 PDF 页面 ${index + 1}/${total}：${page.name}...`); const canvas = await renderExportCanvas(page, false, 1); return { name: page.name, widthPx: canvas.width, heightPx: canvas.height, bytes: canvasToJpegBytes(canvas, 0.98) }; }
+async function exportPagePdf(page = currentPage()) { setStatus(`正在生成 ${page.name}：286×146mm / 300dpi PDF...`); const image = await pageToPdfImage(page); const pdfBytes = createImagePdf([image], page.name); downloadBlob(new Blob([pdfBytes], { type: "application/pdf" }), exportPdfName(page)); setStatus(`已导出 ${exportPdfName(page)}：页面尺寸 ${SPEC.widthMM}×${SPEC.heightMM}mm，画面使用 ${OUT.widthPx}×${OUT.heightPx}px 渲染。`); }
+async function exportAllPagesPdf() { setStatus(`正在生成全部 ${state.pages.length} 个画布的多页 PDF...`); const images = []; for (let i=0;i<state.pages.length;i++) images.push(await pageToPdfImage(state.pages[i], i, state.pages.length)); const pdfBytes = createImagePdf(images, "全部画布"); downloadBlob(new Blob([pdfBytes], { type: "application/pdf" }), "全部画布.pdf"); setStatus(`已导出全部画布 PDF：共 ${state.pages.length} 页，每页 ${SPEC.widthMM}×${SPEC.heightMM}mm。`); }
+
+const SETTINGS_FILE_TYPE = "storybook-dual-square-print-settings";
+const SETTINGS_SCHEMA_VERSION = 3;
+const IMAGE_REF_SETTING_KEYS = [
+  "backgroundName", "backgroundPath", "backgroundSize", "backgroundType", "backgroundLastModified",
+  "leftName", "leftPath", "leftSize", "leftType", "leftLastModified",
+  "rightName", "rightPath", "rightSize", "rightType", "rightLastModified"
+];
+const PAGE_SETTING_KEYS = [
+  "backgroundColor", "showGuides", "backgroundOffsetXPct", "backgroundOffsetYPct", "backgroundScalePct", "backgroundEditUnlocked",
+  "imageSizeMM", "imageTopGapMM", "imageUnitMode", "imageFit",
+  "borderAuto", "borderColor", "borderWidthPx", "borderRadiusPx", "borderUnitMode",
+  "textTopMM", "textWidthMM", "textHeightMM", "textBoxUnitMode",
+  "fontFamily", "fontSizePx", "lineHeight", "textColor", "textAlign", "textBgColor", "textBgOpacity",
+  "name", "leftText", "rightText",
+  ...IMAGE_REF_SETTING_KEYS
+];
+const NUMERIC_SETTING_LIMITS = Object.freeze({
+  imageSizeMM: [16, 140, baseSettings.imageSizeMM],
+  imageTopGapMM: [0, 120, baseSettings.imageTopGapMM],
+  borderWidthPx: [0, 160, baseSettings.borderWidthPx],
+  borderRadiusPx: [0, 420, baseSettings.borderRadiusPx],
+  textTopMM: [0, 140, baseSettings.textTopMM],
+  textWidthMM: [8, 140, baseSettings.textWidthMM],
+  textHeightMM: [4, 80, baseSettings.textHeightMM],
+  fontSizePx: [8, 260, baseSettings.fontSizePx],
+  lineHeight: [0.8, 3, baseSettings.lineHeight],
+  textBgOpacity: [0, 1, baseSettings.textBgOpacity],
+  backgroundOffsetXPct: [-200, 200, baseSettings.backgroundOffsetXPct],
+  backgroundOffsetYPct: [-200, 200, baseSettings.backgroundOffsetYPct],
+  backgroundScalePct: [20, 500, baseSettings.backgroundScalePct],
+  backgroundSize: [0, 10000000000, 0],
+  backgroundLastModified: [0, 10000000000000, 0],
+  leftSize: [0, 10000000000, 0],
+  leftLastModified: [0, 10000000000000, 0],
+  rightSize: [0, 10000000000, 0],
+  rightLastModified: [0, 10000000000000, 0]
+});
+const SELECT_SETTING_VALUES = Object.freeze({
+  imageUnitMode: ["mm", "px", "pct"],
+  borderUnitMode: ["px", "mm", "pct"],
+  textBoxUnitMode: ["mm", "px", "pct"],
+  imageFit: ["cover", "contain"],
+  textAlign: ["center", "left", "right"]
+});
+const COLOR_SETTING_KEYS = new Set(["backgroundColor", "borderColor", "textColor", "textBgColor"]);
+const BOOLEAN_SETTING_KEYS = new Set(["showGuides", "borderAuto", "backgroundEditUnlocked"]);
+const STRING_SETTING_KEYS = new Set(["name", "leftText", "rightText", "fontFamily", "backgroundName", "backgroundPath", "backgroundType", "leftName", "leftPath", "leftType", "rightName", "rightPath", "rightType"]);
+function pageSettingsFrom(page, options = {}) {
+  const includeImageRefs = options.includeImageRefs !== false;
+  const out = {};
+  PAGE_SETTING_KEYS.forEach(key => {
+    if (!includeImageRefs && IMAGE_REF_SETTING_KEYS.includes(key)) return;
+    if (Object.prototype.hasOwnProperty.call(page, key)) out[key] = page[key];
+  });
+  return out;
+}
+function settingsPackageFromPages(pages, options = {}) {
+  const includeImageRefs = options.includeImageRefs !== false;
+  return {
+    type: SETTINGS_FILE_TYPE,
+    version: SETTINGS_SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    includeImageRefs,
+    imageRefsNote: includeImageRefs ? "JSON 仅保存图片文件名/相对路径，不嵌入图片数据；导入后需要在工具中选择原图片文件夹或图片文件以重新加载。" : "未保存图片引用。",
+    spec: { widthMM: SPEC.widthMM, heightMM: SPEC.heightMM, bleedMM: SPEC.bleedMM, dpi: SPEC.dpi },
+    pages: pages.map(page => pageSettingsFrom(page, { includeImageRefs }))
+  };
+}
+function sanitizeSettingPage(raw = {}, index = 0) {
+  const src = raw && typeof raw === "object" ? raw : {};
+  const out = {};
+  PAGE_SETTING_KEYS.forEach(key => {
+    if (!Object.prototype.hasOwnProperty.call(src, key)) return;
+    const value = src[key];
+    if (Object.prototype.hasOwnProperty.call(NUMERIC_SETTING_LIMITS, key)) {
+      const [min, max, fallback] = NUMERIC_SETTING_LIMITS[key];
+      out[key] = round(clamp(value, min, max, fallback), key.endsWith("Px") || key === "fontSizePx" ? 0 : 2);
+      return;
+    }
+    if (COLOR_SETTING_KEYS.has(key)) {
+      const normalized = normalizeHexColor(value, true);
+      if (normalized) out[key] = normalized;
+      return;
+    }
+    if (BOOLEAN_SETTING_KEYS.has(key)) { out[key] = Boolean(value); return; }
+    if (SELECT_SETTING_VALUES[key]) {
+      if (SELECT_SETTING_VALUES[key].includes(value)) out[key] = value;
+      return;
+    }
+    if (STRING_SETTING_KEYS.has(key)) {
+      if ((key === "leftText" || key === "rightText") && isDefaultPlaceholderText(key, value)) { out[key] = ""; return; }
+      const maxLen = key === "fontFamily" ? 180 : key === "name" ? 80 : 5000;
+      out[key] = String(value ?? "").slice(0, maxLen);
+    }
+  });
+  if (!out.name) out.name = `导入设置 ${index + 1}`;
+  return out;
+}
+function settingsPagesFromPayload(payload) {
+  if (!payload || typeof payload !== "object") return [];
+  const candidates = Array.isArray(payload.pages) ? payload.pages : Array.isArray(payload.settings) ? payload.settings : Array.isArray(payload.canvasSettings) ? payload.canvasSettings : [];
+  if (candidates.length) return candidates.map((item, index) => sanitizeSettingPage(item, index)).filter(item => Object.keys(item).length);
+  const single = payload.page || payload.setting || payload.settings || payload;
+  const sanitized = sanitizeSettingPage(single, 0);
+  return Object.keys(sanitized).length ? [sanitized] : [];
+}
+function downloadJson(data, filename) {
+  const json = JSON.stringify(data, null, 2);
+  downloadBlob(new Blob([json], { type: "application/json;charset=utf-8" }), filename);
+}
+function exportCurrentSettings() {
+  const page = currentPage();
+  const includeImageRefs = Boolean(els.exportImageRefs?.checked);
+  downloadJson(settingsPackageFromPages([page], { includeImageRefs }), `${safeFilename(page.name)}_设置.json`);
+  setStatus(includeImageRefs ? `已导出当前画布设置：${page.name}，并保存图片文件名/相对路径。` : `已导出当前画布设置：${page.name}。`);
+}
+function exportAllSettings() {
+  const includeImageRefs = Boolean(els.exportImageRefs?.checked);
+  downloadJson(settingsPackageFromPages(state.pages, { includeImageRefs }), `${safeFilename("全部画布")}_设置.json`);
+  setStatus(includeImageRefs ? `已导出全部 ${state.pages.length} 个画布的设置，并保存图片文件名/相对路径。` : `已导出全部 ${state.pages.length} 个画布的设置。`);
+}
+async function applySettingsToPage(settings, page, options = {}) {
+  const applyName = options.applyName !== false;
+  PAGE_SETTING_KEYS.forEach(key => {
+    if (!applyName && key === "name") return;
+    if (Object.prototype.hasOwnProperty.call(settings, key)) page[key] = settings[key];
+  });
+  // 设置文件只保存图片引用，不保存图片数据；导入设置时清空旧图片数据，等待用户重新选择文件夹/图片匹配加载。
+  ["background", "left", "right"].forEach(side => {
+    const prefix = refPrefixForSide(side);
+    if (Object.prototype.hasOwnProperty.call(settings, `${prefix}Path`) || Object.prototype.hasOwnProperty.call(settings, `${prefix}Name`)) page[`${prefix}DataUrl`] = "";
+  });
+  if (page.borderAuto) page.borderColor = await pickDarkestCanvasColor(page);
+}
+async function importSettingsFromInput(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  try {
+    const payload = JSON.parse(await file.text());
+    const importedPages = settingsPagesFromPayload(payload);
+    if (!importedPages.length) throw new Error("没有找到可导入的设置数据。请使用本工具导出的 JSON。" );
+    const mode = els.importSettingsMode.value || "current";
+    if (mode === "current") {
+      await applySettingsToPage(importedPages[0], currentPage());
+      setStatus(`已将 ${file.name} 的第一组设置应用到当前画布。`);
+    } else if (mode === "allSame") {
+      for (const page of state.pages) await applySettingsToPage(importedPages[0], page, { applyName: false });
+      setStatus(`已将 ${file.name} 的第一组设置应用到全部 ${state.pages.length} 个画布；画布名保留不变。`);
+    } else if (mode === "byOrder") {
+      for (let i = 0; i < Math.min(state.pages.length, importedPages.length); i++) await applySettingsToPage(importedPages[i], state.pages[i]);
+      setStatus(`已按顺序应用 ${Math.min(state.pages.length, importedPages.length)} 组设置到现有画布。`);
+    } else if (mode === "replace") {
+      state.pages = importedPages.map(settings => createPage(settings));
+      state.currentPageId = state.pages[0].id;
+      state.nextPageNumber = state.pages.length + 1;
+      for (const page of state.pages) if (page.borderAuto) page.borderColor = await pickDarkestCanvasColor(page);
+      setStatus(`已用 ${file.name} 替换为 ${state.pages.length} 个画布设置；如 JSON 保存了图片引用，请选择图片文件夹或图片文件重新加载。`);
+    }
+    render();
+  } catch (error) {
+    setStatus(`导入设置失败：${error.message}`);
+  } finally {
+    input.value = "";
+  }
+}
+
+function assetReferencesForPage(page, scope = "all") {
+  const refs = [
+    { side: "background", name: page.backgroundName || "", path: page.backgroundPath || "", size: Number(page.backgroundSize) || 0 },
+    { side: "left", name: page.leftName || "", path: page.leftPath || "", size: Number(page.leftSize) || 0 },
+    { side: "right", name: page.rightName || "", path: page.rightPath || "", size: Number(page.rightSize) || 0 }
+  ].filter(ref => ref.name || ref.path);
+  if (scope === "background") return refs.filter(ref => ref.side === "background");
+  if (scope === "photos") return refs.filter(ref => ref.side === "left" || ref.side === "right");
+  return refs;
+}
+function countMissingImageRefs(pages = state.pages, scope = "all") {
+  let total = 0;
+  pages.forEach(page => {
+    assetReferencesForPage(page, scope).forEach(ref => {
+      const prefix = refPrefixForSide(ref.side);
+      if (!page[`${prefix}DataUrl`]) total += 1;
+    });
+  });
+  return total;
+}
+function pathWithoutRootFolder(path) {
+  const parts = normalizedAssetPath(path).split("/").filter(Boolean);
+  return parts.length > 1 ? parts.slice(1).join("/") : parts.join("/");
+}
+function buildAssetFileIndex(files) {
+  const index = { byPath: new Map(), byName: new Map(), byNameAndSize: new Map(), all: [] };
+  Array.from(files || []).filter(file => file && file.type && file.type.startsWith("image/")).forEach(file => {
+    const path = normalizedAssetPath(file.webkitRelativePath || file.name);
+    const shortPath = pathWithoutRootFolder(path);
+    const name = assetBaseName(file.name);
+    const relName = assetBaseName(path);
+    [path, shortPath].filter(Boolean).forEach(p => { if (!index.byPath.has(p)) index.byPath.set(p, file); });
+    [name, relName].filter(Boolean).forEach(n => {
+      if (!index.byName.has(n)) index.byName.set(n, []);
+      index.byName.get(n).push(file);
+      const sizeKey = `${n}|${Number(file.size) || 0}`;
+      if (!index.byNameAndSize.has(sizeKey)) index.byNameAndSize.set(sizeKey, file);
+    });
+    index.all.push(file);
+  });
+  return index;
+}
+function findAssetFileForRef(ref, index) {
+  const path = normalizedAssetPath(ref.path);
+  const shortPath = pathWithoutRootFolder(path);
+  const name = assetBaseName(ref.name || path);
+  const size = Number(ref.size) || 0;
+  if (path && index.byPath.has(path)) return index.byPath.get(path);
+  if (shortPath && index.byPath.has(shortPath)) return index.byPath.get(shortPath);
+  if (path) {
+    const suffixMatch = index.all.find(file => {
+      const filePath = normalizedAssetPath(file.webkitRelativePath || file.name);
+      const fileShort = pathWithoutRootFolder(filePath);
+      return filePath.endsWith(path) || filePath.endsWith(shortPath) || path.endsWith(fileShort) || shortPath.endsWith(fileShort);
+    });
+    if (suffixMatch) return suffixMatch;
+  }
+  if (name && size && index.byNameAndSize.has(`${name}|${size}`)) return index.byNameAndSize.get(`${name}|${size}`);
+  const byName = name ? index.byName.get(name) : null;
+  if (byName && byName.length === 1) return byName[0];
+  if (byName && byName.length > 1 && size) return byName.find(file => Number(file.size) === size) || byName[0];
+  return null;
+}
+async function relinkImagesFromFiles(files, scope = "all") {
+  const index = buildAssetFileIndex(files);
+  if (!index.all.length) { setStatus("没有选到可用的图片文件。"); return; }
+  const label = scope === "background" ? "背景" : scope === "photos" ? "左/右图片" : "图片";
+  let linked = 0, missing = 0, skippedLoaded = 0;
+  for (const page of state.pages) {
+    for (const ref of assetReferencesForPage(page, scope)) {
+      const prefix = refPrefixForSide(ref.side);
+      if (page[`${prefix}DataUrl`]) { skippedLoaded += 1; continue; }
+      const file = findAssetFileForRef(ref, index);
+      if (file) { await setImageFromFile(page, ref.side, file, { resetBackgroundView: false }); linked += 1; }
+      else missing += 1;
+    }
+  }
+  render();
+  setStatus(`已从${label}来源重新加载 ${linked} 张；${missing} 个引用未匹配，${skippedLoaded} 个已加载项目跳过。`);
+}
+
+function fontFileStem(filename) { return String(filename || "").split("/").pop().replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim(); }
+function folderLabelForPath(path) {
+  const parts = String(path || "").split("/").filter(Boolean);
+  const parent = parts.length >= 2 ? parts[parts.length - 2] : "GitHub";
+  if (parent.toLowerCase() === "chinese") return "中文";
+  if (parent.toLowerCase() === "english") return "英文";
+  return parent;
+}
+function githubFontFamilyFor(path) {
+  const cleanPath = String(path || "font").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9\u4e00-\u9fff]+/g, "_").replace(/^_+|_+$/g, "");
+  return `Github_${cleanPath || "Font"}`;
+}
+function encodePathSegment(name) { return String(name || "").split("/").map(part => encodeURIComponent(part)).join("/"); }
+function normalizeGithubFontItem(item) {
+  if (typeof item === "string") return { path: item, name: item.split("/").pop(), size: 0, download_url: "" };
+  const path = item.path || item.name || "";
+  return { path, name: item.name || path.split("/").pop(), size: Number(item.size) || 0, download_url: item.download_url || "" };
+}
+function githubFontCandidatesFromItems(items) {
+  return items.map(normalizeGithubFontItem).filter(item => /\.(ttf|otf|woff2?|ttc)$/i.test(item.path || item.name || "")).map(item => {
+    const path = String(item.path || item.name || "").replace(/^\/+/, "");
+    const urls = [
+      `${GITHUB_FONT_REPO.pagesBase}${encodePathSegment(path)}`,
+      `${GITHUB_FONT_REPO.rawBase}${encodePathSegment(path)}`
+    ];
+    if (item.download_url && !urls.includes(item.download_url)) urls.push(item.download_url);
+    return {
+      name: item.name || path.split("/").pop(),
+      path,
+      size: Number(item.size) || 0,
+      displayName: `${folderLabelForPath(path)} / ${fontFileStem(path)}`,
+      family: githubFontFamilyFor(path),
+      urlCandidates: urls
+    };
+  });
+}
+async function fetchGithubDirectoryItems(directory) {
+  const apiUrl = `https://api.github.com/repos/${GITHUB_FONT_REPO.owner}/${GITHUB_FONT_REPO.repo}/contents/${encodePathSegment(directory)}?ref=${encodeURIComponent(GITHUB_FONT_REPO.branch)}`;
+  const response = await fetch(apiUrl, { headers: { "Accept": "application/vnd.github+json" } });
+  if (!response.ok) throw new Error(`${directory}：GitHub API ${response.status}`);
+  const items = await response.json();
+  if (!Array.isArray(items)) throw new Error(`${directory}：GitHub API 返回格式不是数组`);
+  return items.filter(item => item && item.type === "file" && /\.(ttf|otf|woff2?|ttc)$/i.test(item.name || ""));
+}
+async function fetchGithubFontCandidates() {
+  const allItems = [];
+  const errors = [];
+  for (const directory of GITHUB_FONT_REPO.directories) {
+    try {
+      allItems.push(...await fetchGithubDirectoryItems(directory));
+    } catch (error) {
+      errors.push(error.message || String(error));
+    }
+  }
+  if (!allItems.length) {
+    if (errors.length) console.warn("GitHub 字体目录读取失败", errors);
+    return githubFontCandidatesFromItems(GITHUB_FONT_FALLBACK_FILES);
+  }
+  return githubFontCandidatesFromItems(allItems);
+}
+async function loadFontFaceFromUrls(family, urls) {
+  if (!window.FontFace || !document.fonts) throw new Error("当前浏览器不支持动态字体加载");
+  let lastError = null;
+  for (const url of urls) {
+    try {
+      const face = new FontFace(family, `url("${url}")`);
+      await face.load();
+      document.fonts.add(face);
+      return url;
+    } catch (error) { lastError = error; }
+  }
+  throw lastError || new Error("字体地址不可用");
+}
+function hasFontFamily(family) {
+  return [...fontOptions, ...customFonts].some(([, value]) => value === family);
+}
+async function loadGithubFonts(options = {}) {
+  if (state.githubFontsLoading) return;
+  if (state.githubFontsLoaded && !options.force) { setStatus("GitHub 字体库已加载。需要重新读取可再次点击按钮。"); return; }
+  state.githubFontsLoading = true;
+  if (!options.silent) setStatus("正在加载 GitHub 字体库...");
+  if (els.githubFontReadout) els.githubFontReadout.textContent = "正在从 GitHub 字体库读取 chinese / english 字体列表...";
+  try {
+    const candidates = await fetchGithubFontCandidates();
+    let loaded = 0, skipped = 0, failed = 0, tooSmall = 0;
+    const failedNames = [];
+    for (const font of candidates) {
+      if (hasFontFamily(font.family)) { skipped += 1; continue; }
+      if (font.size > 0 && font.size < MIN_REMOTE_FONT_BYTES) { tooSmall += 1; failedNames.push(`${font.displayName}（文件过小）`); continue; }
+      try {
+        await loadFontFaceFromUrls(font.family, font.urlCandidates);
+        customFonts.push([`GitHub / ${font.displayName}`, font.family]);
+        loaded += 1;
+      } catch (error) { failed += 1; failedNames.push(font.displayName); }
+    }
+    state.githubFontsLoaded = loaded > 0 || skipped > 0;
+    renderFontOptions();
+    render();
+    const message = `GitHub 字体库加载完成：新增 ${loaded} 个，已存在 ${skipped} 个，失败 ${failed} 个，跳过异常小文件 ${tooSmall} 个。`;
+    const detail = failedNames.length ? ` 失败/跳过：${failedNames.slice(0, 6).join("、")}${failedNames.length > 6 ? " 等" : ""}。` : "";
+    if (els.githubFontReadout) els.githubFontReadout.textContent = message + " 读取 my-fonts-lib/chinese 与 my-fonts-lib/english；优先 GitHub Pages，失败时已尝试 raw.githubusercontent.com。" + detail;
+    setStatus(message);
+  } catch (error) {
+    if (els.githubFontReadout) els.githubFontReadout.textContent = `GitHub 字体库加载失败：${error.message}`;
+    setStatus(`GitHub 字体库加载失败：${error.message}`);
+  } finally {
+    state.githubFontsLoading = false;
+  }
+}
+function copyLayoutFrom(source, target) {
+  ["imageSizeMM","imageTopGapMM","imageUnitMode","imageFit","borderAuto","borderWidthPx","borderRadiusPx","borderUnitMode"].forEach(k => target[k]=source[k]);
+  if (!source.borderAuto) target.borderColor = source.borderColor;
+}
+function copyTextBoxFrom(source, target) { ["textTopMM","textWidthMM","textHeightMM","textBoxUnitMode"].forEach(k => target[k]=source[k]); }
+function copyTextStyleFrom(source, target) { ["fontFamily","fontSizePx","lineHeight","textColor","textAlign","textBgColor","textBgOpacity"].forEach(k => target[k]=source[k]); }
+function copyBackgroundFrom(source, target) { ["backgroundDataUrl","backgroundName","backgroundColor","backgroundOffsetXPct","backgroundOffsetYPct","backgroundScalePct"].forEach(k => target[k]=source[k]); if (target.borderAuto) target.borderColor = source.borderColor; }
+function numericRawIsCommittable(raw) { return raw && raw !== "-" && raw !== "." && raw !== "-."; }
+function commitNumericControl(el, key, min, max, fallback) { const raw = String(el?.value ?? "").trim(); if (!numericRawIsCommittable(raw)) return false; currentPage()[key] = clamp(raw, min, max, fallback); render(); return true; }
+function bindNumericControl(el, key, min, max, fallback) { if (!el) return; el.addEventListener("input", () => { const raw = String(el.value ?? "").trim(); if (!raw) return; if (/^-?\d*(?:\.\d*)?$/.test(raw)) commitNumericControl(el,key,min,max,fallback); }); const finalize = () => { if (!commitNumericControl(el,key,min,max,fallback)) render(); }; el.addEventListener("change", finalize); el.addEventListener("blur", finalize); }
+function commitMMUnitControl(el, key, unitGetter, axis, getBounds, fallback) {
+  const raw = String(el?.value ?? "").trim(); if (!numericRawIsCommittable(raw)) return false;
+  const page = currentPage(), unit = unitGetter(); const bounds = getBounds(page);
+  page[key] = round(clamp(unitValueToMm(raw, unit, axis), bounds.min, bounds.max, fallback), 2);
+  render(); return true;
+}
+function bindMMUnitControl(el, key, unitGetter, axis, getBounds, fallback) {
+  if (!el) return;
+  el.addEventListener("input", () => { const raw = String(el.value ?? "").trim(); if (!raw) return; if (/^-?\d*(?:\.\d*)?$/.test(raw)) commitMMUnitControl(el,key,unitGetter,axis,getBounds,fallback); });
+  const finalize = () => { if (!commitMMUnitControl(el,key,unitGetter,axis,getBounds,fallback)) render(); };
+  el.addEventListener("change", finalize); el.addEventListener("blur", finalize);
+}
+function commitBorderUnitControl(el, key, unitGetter, min, max, fallback) {
+  const raw = String(el?.value ?? "").trim(); if (!numericRawIsCommittable(raw)) return false;
+  const page = currentPage(), unit = unitGetter();
+  page[key] = Math.round(clamp(unitValueToBorderPx(raw, unit), min, max, fallback));
+  render(); return true;
+}
+function bindBorderUnitControl(el, key, unitGetter, min, max, fallback) {
+  if (!el) return;
+  el.addEventListener("input", () => { const raw = String(el.value ?? "").trim(); if (!raw) return; if (/^-?\d*(?:\.\d*)?$/.test(raw)) commitBorderUnitControl(el,key,unitGetter,min,max,fallback); });
+  const finalize = () => { if (!commitBorderUnitControl(el,key,unitGetter,min,max,fallback)) render(); };
+  el.addEventListener("change", finalize); el.addEventListener("blur", finalize);
+}
+function renamePage(page = currentPage()) {
+  const next = window.prompt("请输入画布名称：", page.name || "画布");
+  if (next === null) return;
+  const clean = String(next).trim();
+  if (!clean) { setStatus("画布名称不能为空。"); return; }
+  page.name = clean;
+  render();
+  setStatus(`已改名为「${page.name}」。导出文件名将直接使用这个名称。`);
+}
+function resetBackgroundView(page = currentPage()) { page.backgroundOffsetXPct = 0; page.backgroundOffsetYPct = 0; page.backgroundScalePct = 100; render(); setStatus("背景位置和缩放已复位。"); }
+
+function mmPerStageY() { return SPEC.heightMM / Math.max(1, els.stage.getBoundingClientRect().height); }
+function mmPerStageX() { return SPEC.widthMM / Math.max(1, els.stage.getBoundingClientRect().width); }
+function selectTextBox(side) { els.leftTextPreview.classList.toggle("active", side === "left"); els.rightTextPreview.classList.toggle("active", side === "right"); }
+function bindPhotoFrameDrag(frame, input) { frame.addEventListener("pointerdown", event => { if (event.button !== 0) return; event.preventDefault(); const page=currentPage(); const startY=event.clientY, startTop=Number(page.imageTopGapMM)||0; let moved=false; frame.setPointerCapture(event.pointerId); frame.classList.add("dragging"); const onMove=e => { const dy=e.clientY-startY; if (Math.abs(dy)>3) moved=true; const layout=getLayout(page); page.imageTopGapMM=clamp(startTop+dy*mmPerStageY(),0,layout.maxTopGap,startTop); render(); }; const onUp=() => { frame.releasePointerCapture(event.pointerId); frame.classList.remove("dragging"); frame.removeEventListener("pointermove",onMove); frame.removeEventListener("pointerup",onUp); frame.removeEventListener("pointercancel",onUp); if (!moved) input.click(); }; frame.addEventListener("pointermove",onMove); frame.addEventListener("pointerup",onUp); frame.addEventListener("pointercancel",onUp); }); }
+function bindTextBoxInteractions(box, side) { const move=box.querySelector(".move-handle"), resize=box.querySelector(".resize-handle"); box.addEventListener("pointerdown", () => selectTextBox(side)); if (move) move.addEventListener("pointerdown", event => { if (event.button!==0) return; event.preventDefault(); event.stopPropagation(); selectTextBox(side); const page=currentPage(); const startY=event.clientY, startTop=Number(page.textTopMM)||0; move.setPointerCapture(event.pointerId); const onMove=e => { const layout=getLayout(page); page.textTopMM=clamp(startTop+(e.clientY-startY)*mmPerStageY(),0,layout.maxTextTopGap,startTop); render(); }; const onUp=() => { move.releasePointerCapture(event.pointerId); move.removeEventListener("pointermove",onMove); move.removeEventListener("pointerup",onUp); move.removeEventListener("pointercancel",onUp); }; move.addEventListener("pointermove",onMove); move.addEventListener("pointerup",onUp); move.addEventListener("pointercancel",onUp); }); if (resize) resize.addEventListener("pointerdown", event => { if (event.button!==0) return; event.preventDefault(); event.stopPropagation(); selectTextBox(side); const page=currentPage(); const startX=event.clientX, startY=event.clientY, startW=Number(page.textWidthMM)||baseSettings.textWidthMM, startH=Number(page.textHeightMM)||baseSettings.textHeightMM; resize.setPointerCapture(event.pointerId); const onMove=e => { page.textWidthMM=clamp(startW+(e.clientX-startX)*mmPerStageX(),8,SPEC.widthMM/2-SPEC.bleedMM,startW); page.textHeightMM=clamp(startH+(e.clientY-startY)*mmPerStageY(),4,80,startH); page.textTopMM=clamp(page.textTopMM,0,getLayout(page).maxTextTopGap,page.textTopMM); render(); }; const onUp=() => { resize.releasePointerCapture(event.pointerId); resize.removeEventListener("pointermove",onMove); resize.removeEventListener("pointerup",onUp); resize.removeEventListener("pointercancel",onUp); }; resize.addEventListener("pointermove",onMove); resize.addEventListener("pointerup",onUp); resize.addEventListener("pointercancel",onUp); }); }
+function attachDragSort(node, pageId) { node.addEventListener("dragstart", event => { state.dragPageId = pageId; node.classList.add("dragging"); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", pageId); }); node.addEventListener("dragend", () => { node.classList.remove("dragging"); state.dragPageId = ""; }); node.addEventListener("dragover", event => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }); node.addEventListener("drop", event => { event.preventDefault(); const fromId = state.dragPageId || event.dataTransfer.getData("text/plain"); movePageBefore(fromId, pageId); }); }
+function movePageBefore(fromId, toId) { if (!fromId || !toId || fromId === toId) return; const fromIndex=state.pages.findIndex(p=>p.id===fromId), toIndex=state.pages.findIndex(p=>p.id===toId); if (fromIndex<0 || toIndex<0) return; const [item]=state.pages.splice(fromIndex,1); const newToIndex=state.pages.findIndex(p=>p.id===toId); state.pages.splice(newToIndex,0,item); render(); setStatus("已调整画布顺序，ZIP 将按当前顺序导出。"); }
+function eventHitsEditableLayer(event) {
+  const target = event.target instanceof Element ? event.target : null;
+  return Boolean(target && target.closest(".photo-frame,.text-box,.move-handle,.resize-handle"));
+}
+function bindBackgroundInteractions() {
+  els.stage.addEventListener("pointerdown", event => {
+    if (event.button !== 0 || eventHitsEditableLayer(event)) return;
+    const page = currentPage();
+    if (!page.backgroundDataUrl || !page.backgroundEditUnlocked) return;
+    event.preventDefault();
+    const startX = event.clientX, startY = event.clientY;
+    const startOffsetX = Number(page.backgroundOffsetXPct) || 0, startOffsetY = Number(page.backgroundOffsetYPct) || 0;
+    let moved = false;
+    els.stage.setPointerCapture(event.pointerId);
+    const onMove = e => {
+      const rect = els.stage.getBoundingClientRect();
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if (Math.hypot(dx, dy) > 3) moved = true;
+      page.backgroundOffsetXPct = round(clamp(startOffsetX + dx / Math.max(1, rect.width) * 100, -200, 200, startOffsetX), 2);
+      page.backgroundOffsetYPct = round(clamp(startOffsetY + dy / Math.max(1, rect.height) * 100, -200, 200, startOffsetY), 2);
+      render();
+    };
+    const onUp = () => {
+      els.stage.releasePointerCapture(event.pointerId);
+      els.stage.removeEventListener("pointermove", onMove);
+      els.stage.removeEventListener("pointerup", onUp);
+      els.stage.removeEventListener("pointercancel", onUp);
+      state.suppressStageClickUntil = Date.now() + 250;
+      if (!moved) setTimeout(() => renamePage(page), 0);
+      else setStatus("背景位置已调整。滚轮可继续缩放背景。");
+    };
+    els.stage.addEventListener("pointermove", onMove);
+    els.stage.addEventListener("pointerup", onUp);
+    els.stage.addEventListener("pointercancel", onUp);
+  });
+  els.stage.addEventListener("wheel", event => {
+    const page = currentPage();
+    if (!page.backgroundDataUrl || !page.backgroundEditUnlocked || eventHitsEditableLayer(event)) return;
+    event.preventDefault();
+    const factor = event.deltaY < 0 ? 1.06 : 0.94;
+    page.backgroundScalePct = round(clamp((Number(page.backgroundScalePct) || 100) * factor, 20, 500, 100), 1);
+    render();
+    setStatus(`背景缩放：${page.backgroundScalePct}%。`);
+  }, { passive: false });
+  els.stage.addEventListener("click", event => {
+    if (Date.now() < state.suppressStageClickUntil || eventHitsEditableLayer(event)) return;
+    renamePage(currentPage());
+  });
+}
+function bindEvents() {
+  els.newCanvas.addEventListener("click", () => { const source=currentPage(); const page=createPage({ imageSizeMM:source.imageSizeMM, imageTopGapMM:source.imageTopGapMM, imageUnitMode:source.imageUnitMode, imageFit:source.imageFit, borderAuto:source.borderAuto, borderColor:source.borderColor, borderWidthPx:source.borderWidthPx, borderRadiusPx:source.borderRadiusPx, borderUnitMode:source.borderUnitMode, textTopMM:source.textTopMM, textWidthMM:source.textWidthMM, textHeightMM:source.textHeightMM, textBoxUnitMode:source.textBoxUnitMode, fontFamily:source.fontFamily, fontSizePx:source.fontSizePx, lineHeight:source.lineHeight, textColor:source.textColor, textAlign:source.textAlign, textBgColor:source.textBgColor, textBgOpacity:source.textBgOpacity, backgroundColor:source.backgroundColor, backgroundEditUnlocked:false, showGuides:source.showGuides }); state.pages.push(page); state.currentPageId=page.id; render(); setStatus(`已新建${page.name}。`); });
+  els.duplicateCanvas.addEventListener("click", () => { const page=clonePage(currentPage()); const idx=state.pages.findIndex(p=>p.id===state.currentPageId); state.pages.splice(idx+1,0,page); state.currentPageId=page.id; render(); setStatus(`已复制为${page.name}。`); });
+  els.deleteCanvas.addEventListener("click", () => { if (state.pages.length<=1) return setStatus("至少保留一个画布。"); const idx=state.pages.findIndex(p=>p.id===state.currentPageId); const removed=state.pages.splice(idx,1)[0]; state.currentPageId=state.pages[Math.max(0,idx-1)].id; render(); setStatus(`已删除${removed.name}。`); });
+  els.uploadBackground.addEventListener("click", () => els.backgroundInput.click()); els.clearBackground.addEventListener("click", () => { const page=currentPage(); page.backgroundDataUrl=""; clearImageReference(page,"background"); render(); setStatus("已清除背景。"); }); els.toggleBackgroundEdit.addEventListener("click", () => { const page=currentPage(); page.backgroundEditUnlocked = !page.backgroundEditUnlocked; render(); setStatus(page.backgroundEditUnlocked ? "背景编辑已解锁：可在预览区拖动背景，滚轮缩放。" : "背景编辑已锁定：不会误拖动或缩放背景。"); }); els.resetBackgroundView.addEventListener("click", () => resetBackgroundView(currentPage())); els.backgroundInput.addEventListener("change", () => setImageFromInput(els.backgroundInput,"background"));
+  els.uploadLeft.addEventListener("click", () => els.leftInput.click()); els.uploadRight.addEventListener("click", () => els.rightInput.click()); els.leftInput.addEventListener("change", () => setImageFromInput(els.leftInput,"left")); els.rightInput.addEventListener("change", () => setImageFromInput(els.rightInput,"right")); bindPhotoFrameDrag(els.leftFrame, els.leftInput); bindPhotoFrameDrag(els.rightFrame, els.rightInput);
+  bindTextBoxInteractions(els.leftTextPreview,"left"); bindTextBoxInteractions(els.rightTextPreview,"right"); bindBackgroundInteractions();
+  els.previewMeta.addEventListener("click", event => { const target = event.target instanceof Element ? event.target.closest('[data-action="rename-current"]') : null; if (target) renamePage(currentPage()); });
+  els.backgroundColor.addEventListener("input", async () => { const page=currentPage(); page.backgroundColor=els.backgroundColor.value; if (page.borderAuto) page.borderColor=await pickDarkestCanvasColor(page); render(); }); els.showGuides.addEventListener("change", () => { currentPage().showGuides=els.showGuides.checked; render(); });
+  els.imageUnitMode.addEventListener("change", () => { currentPage().imageUnitMode=els.imageUnitMode.value; render(); });
+  bindMMUnitControl(els.imageSizeMM,"imageSizeMM",currentImageUnit,"x", page => ({ min: 16, max: getLayout(page).maxSize }), baseSettings.imageSizeMM);
+  bindMMUnitControl(els.imageTopGapMM,"imageTopGapMM",currentImageUnit,"y", page => ({ min: 0, max: getLayout(page).maxTopGap }), baseSettings.imageTopGapMM);
+  els.imageFit.addEventListener("change", () => { currentPage().imageFit=els.imageFit.value; render(); });
+  els.resetLayout.addEventListener("click", () => { const page=currentPage(); page.imageSizeMM=baseSettings.imageSizeMM; page.imageTopGapMM=baseSettings.imageTopGapMM; page.textTopMM=baseSettings.textTopMM; page.textWidthMM=baseSettings.textWidthMM; page.textHeightMM=baseSettings.textHeightMM; render(); setStatus("已复位图片和文本框位置。"); });
+  els.borderAuto.addEventListener("change", async () => { const page=currentPage(); page.borderAuto=els.borderAuto.checked; if (page.borderAuto) page.borderColor=await pickDarkestCanvasColor(page); render(); }); els.pickDarkest.addEventListener("click", async () => { const page=currentPage(); page.borderColor=await pickDarkestCanvasColor(page); page.borderAuto=true; render(); setStatus(`边框色已更新为 ${page.borderColor}。`); }); els.borderColor.addEventListener("input", () => { const page=currentPage(); page.borderAuto=false; page.borderColor=els.borderColor.value; els.borderColorText.value=page.borderColor; hideColorSuggestions("border"); render(); });
+  els.borderColorText.addEventListener("input", () => handleColorTextInput("border", false)); els.borderColorText.addEventListener("focus", () => renderColorSuggestions("border", els.borderColorText.value)); els.borderColorText.addEventListener("blur", () => setTimeout(() => handleColorTextInput("border", true), 120)); els.borderColorText.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); handleColorTextInput("border", true); els.borderColorText.blur(); } });
+  els.borderUnitMode.addEventListener("change", () => { currentPage().borderUnitMode=els.borderUnitMode.value; render(); });
+  bindBorderUnitControl(els.borderWidthPx,"borderWidthPx",currentBorderUnit,0,160,baseSettings.borderWidthPx); bindBorderUnitControl(els.borderRadiusPx,"borderRadiusPx",currentBorderUnit,0,420,baseSettings.borderRadiusPx);
+  els.textBoxUnitMode.addEventListener("change", () => { currentPage().textBoxUnitMode=els.textBoxUnitMode.value; render(); });
+  bindMMUnitControl(els.textTopMM,"textTopMM",currentTextBoxUnit,"y", page => ({ min: 0, max: getLayout(page).maxTextTopGap }), baseSettings.textTopMM);
+  bindMMUnitControl(els.textWidthMM,"textWidthMM",currentTextBoxUnit,"x", () => ({ min: 8, max: SPEC.widthMM / 2 - SPEC.bleedMM }), baseSettings.textWidthMM);
+  bindMMUnitControl(els.textHeightMM,"textHeightMM",currentTextBoxUnit,"y", () => ({ min: 4, max: 80 }), baseSettings.textHeightMM);
+  els.leftTextInput.addEventListener("input", () => { currentPage().leftText=els.leftTextInput.value; render(); }); els.rightTextInput.addEventListener("input", () => { currentPage().rightText=els.rightTextInput.value; render(); }); els.leftTextContent.addEventListener("focus", () => selectTextBox("left")); els.rightTextContent.addEventListener("focus", () => selectTextBox("right")); els.leftTextContent.addEventListener("input", () => { currentPage().leftText=els.leftTextContent.innerText.replace(/ /g," "); if (document.activeElement !== els.leftTextInput) els.leftTextInput.value=currentPage().leftText; }); els.rightTextContent.addEventListener("input", () => { currentPage().rightText=els.rightTextContent.innerText.replace(/ /g," "); if (document.activeElement !== els.rightTextInput) els.rightTextInput.value=currentPage().rightText; });
+  els.fontFamily.addEventListener("change", () => { currentPage().fontFamily=els.fontFamily.value; render(); }); bindNumericControl(els.fontSizePx,"fontSizePx",8,260,baseSettings.fontSizePx); bindNumericControl(els.lineHeight,"lineHeight",0.8,3,baseSettings.lineHeight); els.textColor.addEventListener("input", () => { currentPage().textColor=els.textColor.value; els.textColorText.value=currentPage().textColor; hideColorSuggestions("text"); render(); }); els.textColorText.addEventListener("input", () => handleColorTextInput("text", false)); els.textColorText.addEventListener("focus", () => renderColorSuggestions("text", els.textColorText.value)); els.textColorText.addEventListener("blur", () => setTimeout(() => handleColorTextInput("text", true), 120)); els.textColorText.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); handleColorTextInput("text", true); els.textColorText.blur(); } }); els.textAlign.addEventListener("change", () => { currentPage().textAlign=els.textAlign.value; render(); }); els.textBgColor.addEventListener("input", () => { currentPage().textBgColor=els.textBgColor.value; render(); }); bindNumericControl(els.textBgOpacity,"textBgOpacity",0,1,baseSettings.textBgOpacity);
+  els.applyLayoutAll.addEventListener("click", async () => { const source=currentPage(); state.pages.forEach(p => copyLayoutFrom(source,p)); if (source.borderAuto) { for (const p of state.pages) { if (p.borderAuto) p.borderColor = await pickDarkestCanvasColor(p); } } render(); setStatus(source.borderAuto ? "已将图片布局与圆角框尺寸应用到全部画布；自动取最深色时未同步源画布边框色。" : "已将图片布局与圆角框样式应用到全部画布。"); });
+  els.applyTextBoxAll.addEventListener("click", () => { const source=currentPage(); state.pages.forEach(p => copyTextBoxFrom(source,p)); render(); setStatus("已将文本框位置与大小应用到全部画布。"); }); els.applyTextStyleAll.addEventListener("click", () => { const source=currentPage(); state.pages.forEach(p => copyTextStyleFrom(source,p)); render(); setStatus("已将文字样式应用到全部画布。"); }); els.applyBackgroundAll.addEventListener("click", () => { const source=currentPage(); state.pages.forEach(p => copyBackgroundFrom(source,p)); render(); setStatus("已将背景应用到全部画布。"); });
+  els.exportCurrentSettings.addEventListener("click", exportCurrentSettings); els.exportAllSettings.addEventListener("click", exportAllSettings); els.importSettings.addEventListener("click", () => els.settingsInput.click()); els.settingsInput.addEventListener("change", () => importSettingsFromInput(els.settingsInput));
+  els.relinkImageFiles.addEventListener("click", () => els.assetFilesInput.click()); els.assetFilesInput.addEventListener("change", () => relinkImagesFromFiles(els.assetFilesInput.files, "all").finally(() => { els.assetFilesInput.value = ""; }));
+  els.relinkPhotoFolder.addEventListener("click", () => els.photoFolderInput.click()); els.photoFolderInput.addEventListener("change", () => relinkImagesFromFiles(els.photoFolderInput.files, "photos").finally(() => { els.photoFolderInput.value = ""; }));
+  els.relinkBackgroundFolder.addEventListener("click", () => els.backgroundFolderInput.click()); els.backgroundFolderInput.addEventListener("change", () => relinkImagesFromFiles(els.backgroundFolderInput.files, "background").finally(() => { els.backgroundFolderInput.value = ""; }));
+  els.loadFont.addEventListener("click", () => els.fontFileInput.click()); els.fontFileInput.addEventListener("change", async () => { const files=Array.from(els.fontFileInput.files || []); for (const file of files) { const family=`Custom_${Date.now()}_${Math.random().toString(36).slice(2,6)}`; const url=URL.createObjectURL(file); const face=new FontFace(family, `url(${url})`); await face.load(); document.fonts.add(face); customFonts.push([file.name.replace(/\.[^.]+$/, ""), family]); currentPage().fontFamily=family; } render(); setStatus(`已加载 ${files.length} 个字体文件。`); });
+  els.loadGithubFonts.addEventListener("click", () => loadGithubFonts({ force: true }));
+  els.downloadPng.addEventListener("click", () => exportPage(currentPage()).catch(err => setStatus(err.message))); els.downloadPdf.addEventListener("click", () => exportPagePdf(currentPage()).catch(err => setStatus(err.message))); els.downloadAllPngs.addEventListener("click", () => exportAllPages().catch(err => setStatus(err.message))); els.downloadAllPdf.addEventListener("click", () => exportAllPagesPdf().catch(err => setStatus(err.message))); window.addEventListener("resize", () => render());
+}
+
+function init() {
+  const page=createPage();
+  state.pages.push(page);
+  state.currentPageId=page.id;
+  bindEvents();
+  render();
+  setStatus("字体库默认不自动加载；需要 GitHub 字体时请手动点击“手动加载 GitHub 字体库”。");
+}
+init();
+</script>
+</body>
+</html>
