@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no,email=no,address=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta property="og:title" content="学术圈分院帽 · 残差分院">
+<meta property="og:description" content="不考智力——那是你的入场券。只看你实际把什么放在第一位。十五题,出审稿意见。">
+<title>学术圈分院帽 · 评议意见书</title>
+<style>
+  :root{
+    --paper:#E8E6DE;
+    --paper-2:#EFEDE6;
+    --ink:#2A2622;
+    --ink-soft:#5C564E;
+    --hair:#C7C1B3;
+    --hair-soft:#D8D3C6;
+    --stamp:#9E2B25;
+    --accent:var(--stamp);
+    --accent-2:#7C7568;
+    --serif: Georgia, "Iowan Old Style", "Songti SC", "Times New Roman", serif;
+    --mono: ui-monospace, "SF Mono", "Menlo", "Consolas", "Liberation Mono", monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(120% 80% at 50% -10%, #F2F0E9 0%, var(--paper) 55%, #DEDACE 100%);
+    color:var(--ink);
+    font-family:var(--serif);
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+    padding:clamp(14px,4vw,48px);
+    min-height:100vh;
+  }
+  .sheet{
+    max-width:680px;
+    margin:0 auto;
+    background:
+      linear-gradient(var(--paper-2),var(--paper-2)),
+      repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(120,110,90,.05) 27px, rgba(120,110,90,.05) 28px);
+    border:1px solid var(--hair);
+    box-shadow:0 1px 0 #fff inset, 0 18px 50px -28px rgba(40,35,25,.55);
+    padding:clamp(20px,5vw,52px);
+    position:relative;
+    overflow:hidden;
+  }
+  .sheet::before{
+    content:"";position:absolute;inset:8px;border:1px solid var(--hair-soft);pointer-events:none;
+  }
+
+  /* letterhead */
+  .head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+    border-bottom:2px solid var(--ink);padding-bottom:12px;position:relative}
+  .head .org{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft)}
+  .head .title{font-family:var(--mono);font-weight:700;font-size:clamp(15px,3.6vw,19px);letter-spacing:.18em;text-transform:uppercase;margin-top:3px}
+  .head .ref{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--ink-soft);text-align:right;white-space:nowrap;line-height:1.7}
+  .head .ref b{color:var(--ink);font-weight:700}
+
+  .body{margin-top:22px}
+  .lede{font-size:clamp(15px,3.7vw,17px)}
+  .lede p{margin:0 0 14px}
+  .thesis{
+    border-left:3px solid var(--accent);
+    padding:2px 0 2px 16px;margin:18px 0;color:var(--ink-soft);
+    font-style:italic;
+  }
+  .salute{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:6px}
+
+  /* form / question */
+  .qmeta{display:flex;justify-content:space-between;align-items:baseline;
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+  .progress{height:3px;background:var(--hair-soft);margin:8px 0 22px;position:relative}
+  .progress i{position:absolute;inset:0 auto 0 0;background:var(--ink);transition:width .35s cubic-bezier(.4,0,.1,1)}
+  .qtext{font-size:clamp(17px,4.4vw,21px);line-height:1.45;margin:0 0 22px;font-weight:500}
+  .qtext .n{font-family:var(--mono);font-size:.8em;color:var(--accent);margin-right:.5em;font-weight:700}
+
+  .opts{display:flex;flex-direction:column;gap:10px}
+  .opt{
+    appearance:none;text-align:left;font-family:var(--serif);font-size:clamp(14.5px,3.6vw,16px);
+    color:var(--ink);background:rgba(255,255,255,.32);
+    border:1px solid var(--hair);border-radius:0;
+    padding:13px 15px 13px 46px;cursor:pointer;position:relative;line-height:1.4;
+    transition:border-color .15s, background .15s, transform .06s;
+  }
+  .opt::before{
+    content:"";position:absolute;left:15px;top:50%;transform:translateY(-50%);
+    width:15px;height:15px;border:1.5px solid var(--ink-soft);border-radius:50%;
+  }
+  .opt:hover{border-color:var(--ink);background:rgba(255,255,255,.6)}
+  .opt:active{transform:translateY(1px)}
+  .opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .opt.sel{border-color:var(--ink);background:rgba(255,255,255,.72)}
+  .opt.sel::before{background:var(--ink);box-shadow:0 0 0 3px var(--paper-2) inset}
+
+  .nav{display:flex;justify-content:space-between;align-items:center;margin-top:24px;gap:12px}
+  .btn{
+    font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    border:1px solid var(--ink);background:var(--ink);color:var(--paper-2);
+    padding:11px 20px;cursor:pointer;transition:opacity .15s, transform .06s;
+  }
+  .btn:hover{opacity:.86}
+  .btn:active{transform:translateY(1px)}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .btn.ghost{background:transparent;color:var(--ink-soft);border-color:var(--hair)}
+  .btn.ghost:hover{color:var(--ink);border-color:var(--ink)}
+  .btn[disabled]{opacity:.3;cursor:not-allowed}
+
+  /* result */
+  .verdict-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .stamp-wrap{position:relative;min-height:118px;margin:6px 0 4px;display:flex;align-items:center;justify-content:center}
+  .stamp{
+    border:3px solid var(--accent);color:var(--accent);
+    padding:10px 20px;transform:rotate(-6deg);
+    font-family:var(--mono);text-transform:uppercase;text-align:center;
+    box-shadow:0 0 0 2px var(--accent) inset;
+    mix-blend-mode:multiply;opacity:.92;
+    animation:slam .5s cubic-bezier(.2,1.4,.3,1) both;
+  }
+  .stamp .lbl{font-size:10px;letter-spacing:.34em;opacity:.85}
+  .stamp .house{font-size:clamp(26px,8vw,42px);font-weight:700;letter-spacing:.14em;line-height:1.05;margin-top:2px}
+  .stamp .en{font-size:11px;letter-spacing:.42em;margin-top:4px;opacity:.8}
+  @keyframes slam{
+    0%{transform:rotate(-6deg) scale(2.4);opacity:0}
+    60%{opacity:.92}
+    100%{transform:rotate(-6deg) scale(1);opacity:.92}
+  }
+
+  .vbody{font-size:clamp(15px,3.7vw,17px);margin-top:8px}
+  .vbody p{margin:0 0 13px}
+  .risk{border-left:3px solid var(--accent);padding-left:14px;color:var(--ink-soft);font-style:italic}
+
+  .tally{margin-top:24px;border-top:1px solid var(--hair);padding-top:16px}
+  .tally h4{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 12px;font-weight:700}
+  .row{display:grid;grid-template-columns:96px 1fr 30px;align-items:center;gap:10px;margin-bottom:7px;font-size:13px}
+  .row .nm{font-family:var(--mono);letter-spacing:.05em}
+  .bar{height:9px;background:var(--hair-soft);position:relative}
+  .bar i{position:absolute;inset:0 auto 0 0;background:var(--ink-soft);transition:width .6s cubic-bezier(.4,0,.1,1)}
+  .row.top .bar i{background:var(--accent)}
+  .row.top .nm{color:var(--accent);font-weight:700}
+  .row .pc{font-family:var(--mono);font-size:12px;text-align:right;color:var(--ink-soft)}
+
+  .note{margin-top:18px;font-size:13.5px;color:var(--ink-soft);background:rgba(158,43,37,.05);
+    border:1px dashed var(--accent);padding:12px 14px}
+  .note b{color:var(--accent)}
+
+  .sig{margin-top:26px;display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+  .sig .who{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-soft);line-height:1.8}
+  .sig .who b{color:var(--ink);font-size:13px;letter-spacing:.14em;text-transform:uppercase;display:block}
+
+  .foot{margin-top:26px;border-top:1px solid var(--hair);padding-top:14px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink-soft);line-height:1.7}
+
+  .share-hint{margin-top:14px;text-align:center;font-family:var(--mono);font-size:11px;
+    letter-spacing:.04em;color:var(--ink-soft)}
+  .copytext{display:none;width:100%;height:172px;margin-top:12px;padding:11px 13px;
+    box-sizing:border-box;font-family:var(--mono);font-size:12px;line-height:1.65;
+    color:var(--ink);background:rgba(255,255,255,.6);border:1px solid var(--hair);
+    border-radius:0;resize:vertical;-webkit-user-select:text;user-select:text}
+
+  .submode{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.04em;
+    color:var(--ink-soft);margin:-2px 0 18px}
+  .conc{background:rgba(158,43,37,.05);border:1px dashed var(--accent);padding:12px 14px;
+    font-size:14.5px;margin-top:4px}
+  .conc b{color:var(--accent)}
+  .axes{margin-top:24px;border-top:1px solid var(--hair);padding-top:16px}
+  .axes h4{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-soft);margin:0 0 12px;font-weight:700}
+  .ax{font-size:14px;line-height:1.5;margin:8px 0;color:var(--ink)}
+  .ax b{font-family:var(--mono);font-size:12.5px;letter-spacing:.04em}
+  .plane{width:280px;max-width:100%;height:auto;display:block;margin:16px auto 4px}
+  .plane .pl{font-size:9px;font-family:var(--mono);font-weight:700;opacity:.92}
+  .plane .plt{font-size:8px;font-family:var(--mono);opacity:.7}
+  .plane .pa{font-size:9px;font-family:var(--mono);letter-spacing:.1em;fill:var(--ink-soft)}
+  .plane .pyou{font-size:11px;font-family:var(--mono);font-weight:700}
+  .syn{font-size:13.5px;line-height:1.55;color:var(--ink-soft);font-style:italic;
+    border-left:3px solid var(--accent);padding-left:13px;margin:14px 0 0}
+
+  @media (prefers-reduced-motion: reduce){
+    .stamp{animation:none}
+    .progress i,.bar i{transition:none}
+  }
+</style>
+</head>
+<body>
+  <main class="sheet" id="sheet" aria-live="polite"></main>
+
+<script>
+(function(){
+  "use strict";
+
+  // chosen house gets +1. Each question carries all four houses exactly once.
+  var H = {
+    G:{zh:"格兰芬多", en:"GRYFFINDOR", c:"#9E3A2B"},
+    S:{zh:"斯莱特林", en:"SLYTHERIN",  c:"#3D6B54"},
+    H:{zh:"赫奇帕奇", en:"HUFFLEPUFF", c:"#9C7012"},
+    R:{zh:"拉文克劳", en:"RAVENCLAW",  c:"#355F82"}
+  };
+
+  var QS = [
+    {q:"下一个项目,你在四件事之间选——",
+     o:[["能带来资源和影响力、让我和我的人站得更稳的方向","S"],
+        ["我私心最想弄明白的那个,哪怕它对谁都没什么用","R"],
+        ["领域真正缺、却一直没人肯接手的那块基础工作","H"],
+        ["大家都判了死刑、我偏不服气想再试一次的那个","G"]]},
+    {q:"一篇待审的稿子落到你手上,你最先做的是——",
+     o:[["沉下心逐行核对、把该说的写清楚——反正署不署名我都这么做","H"],
+        ["先掂量它和我的关系:谁写的、动了谁的盘子、对我是敌是友","S"],
+        ["直奔它最大胆的那个论断,看它敢不敢碰别人都绕开的东西","G"],
+        ["先看问题本身有不有趣,有趣就忘了我是来审稿的","R"]]},
+    {q:"凌晨一点,你还醒着,大概率正在——",
+     o:[["弄一个跟任何截止日期都无关、纯粹我自己想搞清的东西","R"],
+        ["反复打磨一份申请书的措辞,因为我清楚这一步决定后面所有事","S"],
+        ["替别人收尾:学生的 bug、没回的邮件、没人管的杂事","H"],
+        ["写一段我知道会惹麻烦、但我认为必须说出来的话","G"]]},
+    {q:"最让你看不下去的同行是——",
+     o:[["话说得漂亮、其实经不起一句追问的人","R"],
+        ["永远在等风向、自己一个判断都不敢下的人","G"],
+        ["把合作者的功劳悄悄收进自己账上的人","H"],
+        ["占着位置和资源、却什么都不推动的人","S"]]},
+    {q:"你最想要的那种认可是——",
+     o:[["一个你真正佩服的人,说你这个问题问到了点子上","R"],
+        ["你当年逆着所有人押下的方向,十年后被证明是对的","G"],
+        ["很久以后有人说:这块地基,是你一砖一瓦垒起来的","H"],
+        ["走到那个位置:资源、人、方向,由你来定","S"]]},
+    {q:"给你一整年完全自由、经费管够,你会——",
+     o:[["去碰那个公认做不出来、我一直不死心的问题","G"],
+        ["把一个憋了很久、跟成果毫无关系的私人疑问彻底解决掉","R"],
+        ["把那块没人愿意碰的基础工程(数据、基准、复现)做扎实","H"],
+        ["提前落子,布一个让我几年后正好处在关键位置的局","S"]]},
+    {q:"关于引用,你的真实做法更接近——",
+     o:[["引那些真正塑造了我想法的工作,哪怕它们冷僻","R"],
+        ["把引用也当成经营:谁该被点到、谁记得我点过他,我心里有数","S"],
+        ["一手来源、该署名的人,一个都不少地标上","H"],
+        ["特意把那些被主流冷落、压着的工作捞出来引","G"]]},
+    {q:"你对自己学术生涯最深的恐惧是——",
+     o:[["忙活一辈子,却从没真正搞懂过任何一件事","R"],
+        ["一路顺着大流走,从没在关键处亮出过自己的立场","G"],
+        ["我搭过的那些台子,最后没人知道是我搭的","H"],
+        ["慢慢被边缘化,说话没人听、想做的事推不动","S"]]},
+    {q:"系里开会,决定一笔钱怎么分,你通常——",
+     o:[["会前就把关键的人一个个谈好,确保该成的事能成","S"],
+        ["当场把我认为最该支持的方向顶出来,哪怕没人附和","G"],
+        ["我最在意的是别让那几个闷头干活、不会争的人吃亏","H"],
+        ["老实说,我多半在走神,惦记着自己手里那个问题","R"]]},
+    {q:"你一篇已经发表的结论,被发现错了。你会——",
+     o:[["冷静评估波及多大,稳妥处理,不让一个错误演成一场风暴","S"],
+        ["公开更正,哪怕等于当众打自己的脸","G"],
+        ["放下手头别的,反复重做,非搞清到底哪一步错了不可","R"],
+        ["第一时间通知所有引用过、受这影响的人","H"]]},
+    {q:"你正在做的东西,被另一组抢先发表了。你的反应是——",
+     o:[["立刻评估损失,抢一个差异化的角度补发,把损失压到最低","S"],
+        ["失落归失落,但我更好奇:他们到底是怎么做出来的?","R"],
+        ["转头去赌一个他们没敢碰的更难版本,继续往前冲","G"],
+        ["写封信真心祝贺对方,顺便看看有没有合作的可能","H"]]},
+    {q:"在一场学术会议上,你大部分时间其实在——",
+     o:[["见该见的人、把合作铺好——会场一半的价值在走廊里","S"],
+        ["钻进那些我未必听得懂、但有意思的报告里出不来","R"],
+        ["在 Q&A 里站起来,把那个没人敢问的问题问出来","G"],
+        ["多半在照看自己的学生:帮他们引荐、给他们壮胆","H"]]},
+    {q:"什么样的工作,会让你由衷佩服——",
+     o:[["一个我从没想到、却一下点亮整片领域的问题","R"],
+        ["一个敢直接挑翻公认结论、还真站住了的工作","G"],
+        ["一个扎实到能被反复复现、成为别人地基的工作","H"],
+        ["一个既漂亮、又恰好卡住时代风口、影响力巨大的工作","S"]]},
+    {q:"一个有权势的资深同行,在你了解的事上当众说错了。你会——",
+     o:[["当场指出来,哪怕对方是个大人物","G"],
+        ["私下找个台阶提醒他,既纠正了、又没把关系搞僵","S"],
+        ["顺势护一下场,别让在场更弱的人替他的错背锅","H"],
+        ["我主要在琢磨\u201c他到底哪一步错了\u201d,插不插话反倒其次","R"]]},
+    {q:"说到底,做学术对你是——",
+     o:[["一件我做得好、也能凭它往上走的事业","S"],
+        ["一个我选择站在少数那边、为它据理力争的位置","G"],
+        ["一份总得有人踏实扛下去的活儿","H"],
+        ["一张让我可以一直追问\u201c为什么\u201d的长期通行证","R"]]}
+  ];
+
+  var VERDICT = {
+    R:{lead:"你的主调是好奇。把回报全拿掉你还会接着做——经费、位置、引用在你的目标函数里权重很低,你来这行,本质是有个问题忍不住想知道答案。",
+       under:"底下还压着一股按不住的好奇:哪怕在最功利的时刻,一个\u201c可这到底为什么\u201d也能把你勾走。",
+       risk:"风险:你大概会在某个深夜跟那只出谜语的门环吵起来——因为它的谜语,在你看来逻辑不严谨。"},
+    G:{lead:"你的主调是逆势的勇气。你愿意押上代价站到少数那边,去碰别人绕开的问题、说别人不敢说的话——推动往往就靠这种人,虽然致谢常常迟到十年。",
+       under:"底下还压着一股不服管的劲:你能配合,但到某个点上,你宁可掀桌也不咽下去。",
+       risk:"风险:勇敢不等于正确。赌对了你是先知,赌错了只是又一个固执的人,而区别要很久才揭晓。"},
+    H:{lead:"你的主调是把场子撑住。审稿、复现、署名、收拾烂摊子——这些最不出彩、却最不能没有的事,是你在做。整个领域其实靠这种人活着。",
+       under:"底下还压着一份放不下的责任感:你做很多事,其实是怕没人兜底、怕有人吃亏。",
+       risk:"风险:最该提防的,是那些专门靠你这种人撑场、却把功劳悄悄收进自己简历的同行。"},
+    S:{lead:"你的主调是野心,而且是清醒那一种。你看得见机器怎么转,也愿意去转动它——优化的是位置、资源和影响力,并且你玩得好。",
+       under:"底下还压着一套很清醒的算计:你嘴上不说,但你一直知道这步棋通向哪里。",
+       risk:"风险:最大的危险不是输,是赢——某天你赢下了每一局,却想不起当初是为哪个问题才进的这一行。"}
+  };
+
+  var order=["R","G","H","S"]; // tally display order
+  var state={i:0, ans:new Array(QS.length).fill(null)};
+  var sheet=document.getElementById("sheet");
+
+  function setAccent(c){ document.documentElement.style.setProperty("--accent", c); }
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+  function refno(){
+    var d=new Date(); var p=function(n){return (n<10?"0":"")+n;};
+    return "AC-"+d.getFullYear()+"-"+p(d.getMonth()+1)+p(d.getDate());
+  }
+
+  function renderIntro(){
+    setAccent("#9E2B25");
+    sheet.innerHTML =
+      head("评议意见书 · 受理通知","状态: 待评议") +
+      '<div class="body">'+
+        '<div class="salute">致 申请人</div>'+
+        '<div class="lede">'+
+          '<p>你提交了一份归属申请。本委员会须事先声明评议口径:<b>我们不考核智力。</b>能坐在这间屋子里,意味着你早已通过了那道入场筛选——它在门口已经把方差用掉了,在这里几乎不携带信息。</p>'+
+          '<div class="thesis">真正能区分你的信号活在残差里:动机、气质,以及你究竟把什么放在第一位。</div>'+
+          '<p>因此以下十五项,问的都不是你<b>想</b>被分到哪一院,而是你在真实处境里<b>实际</b>会怎么做。你的 stated preference 我们不收;我们只采 revealed preference。请凭直觉作答。</p>'+
+        '</div>'+
+        '<div class="nav"><span></span>'+
+          '<button class="btn" id="start">开始评议 &rarr;</button>'+
+        '</div>'+
+      '</div>'+
+      foot();
+    document.getElementById("start").onclick=function(){state.i=0;renderQ();};
+  }
+
+  function head(title, refLine){
+    return '<div class="head">'+
+      '<div><div class="org">霍格沃茨学术评议会 · 分院委员会</div>'+
+      '<div class="title">'+title+'</div></div>'+
+      '<div class="ref">编号 <b>'+refno()+'</b><br>'+refLine+'</div>'+
+    '</div>';
+  }
+  function foot(){
+    return '<div class="foot">本意见书依据残差分院准则 (Residual Sorting Protocol) 出具 · 智力项不计分 · 共 '+QS.length+' 项 · 结果不可申诉,可重测</div>';
+  }
+
+  function renderQ(){
+    var i=state.i, item=QS[i];
+    var pct=Math.round((i/QS.length)*100);
+    var opts=shuffle(item.o).map(function(o){
+      var sel = state.ans[i]===o[1] ? " sel":"";
+      // store both text+house via data attrs; house resolves the score, text is cosmetic
+      return '<button class="opt'+sel+'" data-h="'+o[1]+'">'+esc(o[0])+'</button>';
+    }).join("");
+
+    sheet.innerHTML =
+      head("评议意见书 · 评议进行中","状态: 第 "+(i+1)+" / "+QS.length+" 项") +
+      '<div class="body">'+
+        '<div class="qmeta"><span>第 '+String(i+1).padStart(2,"0")+' 项</span><span>残差采集</span></div>'+
+        '<div class="progress"><i style="width:'+pct+'%"></i></div>'+
+        '<p class="qtext"><span class="n">Q'+(i+1)+'.</span>'+esc(item.q)+'</p>'+
+        '<div class="opts">'+opts+'</div>'+
+        '<div class="nav">'+
+          '<button class="btn ghost" id="back"'+(i===0?' disabled':'')+'>&larr; 上一项</button>'+
+          '<button class="btn" id="next"'+(state.ans[i]?'':' disabled')+'>'+(i===QS.length-1?'生成意见 &rarr;':'下一项 &rarr;')+'</button>'+
+        '</div>'+
+      '</div>'+
+      foot();
+
+    Array.prototype.forEach.call(sheet.querySelectorAll(".opt"),function(b){
+      b.onclick=function(){
+        state.ans[i]=b.getAttribute("data-h");
+        Array.prototype.forEach.call(sheet.querySelectorAll(".opt"),function(x){x.classList.remove("sel");});
+        b.classList.add("sel");
+        var nx=document.getElementById("next"); nx.disabled=false;
+      };
+    });
+    document.getElementById("back").onclick=function(){if(state.i>0){state.i--;renderQ();}};
+    document.getElementById("next").onclick=function(){
+      if(!state.ans[i])return;
+      if(state.i<QS.length-1){state.i++;renderQ();} else {renderResult();}
+    };
+  }
+
+  function tally(){
+    var s={G:0,S:0,H:0,R:0};
+    state.ans.forEach(function(h){if(h)s[h]++;});
+    return s;
+  }
+
+  function renderResult(){
+    var s=tally();
+    var total=QS.length;
+    var ranked=order.slice().sort(function(a,b){return s[b]-s[a];});
+    var win=ranked[0], sec=ranked[1];
+    setAccent(H[win].c);
+    var accent=H[win].c;
+
+    var gap=s[win]-s[sec];
+    var spread=s[win]-s[ranked[3]];
+    var inward=s.R+s.S, outward=s.G+s.H, askew=s.R+s.G, aligned=s.S+s.H;
+    var peakCut=Math.round(total*0.6), flatCut=Math.floor(total*0.15),
+        leadGap=Math.max(2,Math.round(total*0.2)), secCut=Math.max(2,Math.round(total*0.2));
+
+    // ---- blend: lead voice + undertow (or co-leaders if flat) ----
+    var blend2="";
+    if(spread<=flatCut){
+      var co=ranked.filter(function(k){return s[win]-s[k]<=flatCut;}).map(function(k){return H[k].zh;});
+      blend2="真要给你贴主调,得同时贴上:"+co.join("、")+"。它们在你身上几乎等权,所以\u201c你是谁\u201d这个问题,答案取决于\u201c在什么场合\u201d。";
+    } else if(s[sec]>=secCut){
+      blend2="但你身上有一条很强的"+H[sec].zh+"暗流。"+VERDICT[sec].under+"主调定方向,暗流定你在关键处往哪拐。";
+    }
+    var blend="<p>"+VERDICT[win].lead+"</p>"+(blend2?("<p>"+blend2+"</p>"):"");
+
+    // ---- concentration (shape of the distribution) ----
+    var conc;
+    if(spread<=flatCut){
+      conc="<b>分布 · 多中心。</b>你四种动机摊得很平,没有压倒性的主院。别急着叫它\u201c测不准\u201d——这是一种真实的类型:你的院是情境的函数,不同处境里上台的是不同的你。代价是难被预测,好处是你比单峰的人更难被一句话框死。";
+    } else if(s[win]>=peakCut){
+      conc="<b>分布 · 单峰。</b>你的动机高度集中,大部分选择都由这一种驱动主导。这让你很 legible——容易被读懂,也容易被预测。一致是你的力量,偶尔也是盲区。";
+    } else if(gap>=leadGap){
+      conc="<b>分布 · 主辅分明。</b>一个清楚的主调,加一个明显的次声部。你有重心,但那个次声部会在关键时刻改写你的选择。";
+    } else {
+      conc="<b>分布 · 双声部。</b>你前两种动机几乎并排站着,谁也没压住谁。你不是某一院的人——你是在这两者之间被反复拉扯的人,而那道拉扯线,才是真正定义你的东西。";
+    }
+
+    // ---- two orthogonal axes ----
+    var a1 = inward>outward
+      ? "<b>引擎向内</b> · 向内 "+inward+" : 向外 "+outward+"——动力源主要在你自己身上:求知,或上进。"
+      : inward<outward
+      ? "<b>引擎向外</b> · 向外 "+outward+" : 向内 "+inward+"——动力主要为身外之物而转:一个事业,或一群人。"
+      : "<b>引擎内外各半</b> · "+inward+" : "+outward+"——一半为己,一半为人,这本身就少见。";
+    var a2 = askew>aligned
+      ? "<b>身位在野</b> · 在野 "+askew+" : 在朝 "+aligned+"——你和既有秩序错开:要么绕开它,要么顶撞它。"
+      : askew<aligned
+      ? "<b>身位在朝</b> · 在朝 "+aligned+" : 在野 "+askew+"——你在既有秩序之内使力:要么往上走,要么把它修好。"
+      : "<b>半朝半野</b> · "+aligned+" : "+askew+"——你既进得去体制,也站得到它外面。";
+
+    var winIn=(win==="R"||win==="S"), winAskew=(win==="R"||win==="G");
+    var syn;
+    if(inward===outward || askew===aligned){
+      syn="有一根轴上你几乎不偏不倚——这条线上的人最难归类,也最自由。";
+    } else if((inward>outward)===winIn && (askew>aligned)===winAskew){
+      syn="两根轴都指向同一个角落,你这个主院是\u201c实心\u201d的:表里一致。";
+    } else {
+      var contra=((inward>outward)!==winIn)
+        ? "你像"+H[win].zh+"一样"+(winAskew?"站在体制外":"在体制内使力")+",可你的引擎其实更"+(inward>outward?"向内":"向外")+",与"+H[win].zh+"的默认朝向相反。"
+        : "你像"+H[win].zh+"一样"+(winIn?"为自己转":"为身外转")+",可你的身位其实更偏"+(askew>aligned?"在野":"在朝")+",与"+H[win].zh+"的默认身位相反。";
+      syn="留意这条对角张力:"+contra+"这种内部的不一致,往往比那枚章更像真实的你。";
+    }
+
+    // ---- 2x2 plane: place the person as a point ----
+    var dx=(120+(aligned-askew)/total*84).toFixed(1);
+    var dy=(120-(inward-outward)/total*84).toFixed(1);
+    var plane=
+      '<svg viewBox="0 0 240 240" class="plane" xmlns="http://www.w3.org/2000/svg">'+
+        '<rect x="36" y="36" width="84" height="84" fill="'+H.R.c+'" fill-opacity="0.13"/>'+
+        '<rect x="120" y="36" width="84" height="84" fill="'+H.S.c+'" fill-opacity="0.13"/>'+
+        '<rect x="36" y="120" width="84" height="84" fill="'+H.G.c+'" fill-opacity="0.13"/>'+
+        '<rect x="120" y="120" width="84" height="84" fill="'+H.H.c+'" fill-opacity="0.13"/>'+
+        '<rect x="36" y="36" width="168" height="168" fill="none" stroke="var(--hair)"/>'+
+        '<line x1="120" y1="36" x2="120" y2="204" stroke="var(--hair-soft)"/>'+
+        '<line x1="36" y1="120" x2="204" y2="120" stroke="var(--hair-soft)"/>'+
+        '<text x="44" y="53" class="pl" fill="'+H.R.c+'">拉文克劳</text>'+
+        '<text x="44" y="65" class="plt" fill="'+H.R.c+'">好奇</text>'+
+        '<text x="196" y="53" class="pl" text-anchor="end" fill="'+H.S.c+'">斯莱特林</text>'+
+        '<text x="196" y="65" class="plt" text-anchor="end" fill="'+H.S.c+'">野心</text>'+
+        '<text x="44" y="181" class="pl" fill="'+H.G.c+'">格兰芬多</text>'+
+        '<text x="44" y="193" class="plt" fill="'+H.G.c+'">勇气</text>'+
+        '<text x="196" y="181" class="pl" text-anchor="end" fill="'+H.H.c+'">赫奇帕奇</text>'+
+        '<text x="196" y="193" class="plt" text-anchor="end" fill="'+H.H.c+'">服务</text>'+
+        '<text x="120" y="29" class="pa" text-anchor="middle">向内</text>'+
+        '<text x="120" y="217" class="pa" text-anchor="middle">向外</text>'+
+        '<text x="24" y="123" class="pa" text-anchor="middle">在野</text>'+
+        '<text x="216" y="123" class="pa" text-anchor="middle">在朝</text>'+
+        '<circle cx="'+dx+'" cy="'+dy+'" r="6.5" fill="'+accent+'" stroke="var(--paper-2)" stroke-width="2"/>'+
+        '<text x="'+dx+'" y="'+(parseFloat(dy)-11).toFixed(1)+'" class="pyou" text-anchor="middle" fill="'+accent+'">你</text>'+
+      '</svg>';
+
+    // ---- tally ----
+    var rows=order.map(function(k){
+      var pc=Math.round((s[k]/total)*100);
+      var top=k===win?" top":"";
+      return '<div class="row'+top+'"><span class="nm">'+H[k].zh+'</span>'+
+             '<span class="bar"><i style="width:'+pc+'%"></i></span>'+
+             '<span class="pc">'+pc+'%</span></div>';
+    }).join("");
+
+    // ---- full plaintext transcript (this is what 复制结论 should produce) ----
+    function strip(x){return x.replace(/<[^>]+>/g,"");}
+    var tallyTxt=order.map(function(k){return H[k].zh+" "+Math.round(s[k]/total*100)+"%";}).join(" · ");
+    var summary=
+      "学术圈分院帽 · 评议结果\n"+
+      "(残差分院,不考智力,只看你实际把什么放在第一位)\n\n"+
+      "主调:"+H[win].zh+"("+H[win].en+")\n\n"+
+      VERDICT[win].lead+
+      (blend2?("\n\n"+blend2):"")+"\n\n"+
+      strip(conc)+"\n\n"+
+      "把你拆成两根轴:\n"+strip(a1)+"\n"+strip(a2)+"\n"+strip(syn)+"\n\n"+
+      VERDICT[win].risk+"\n\n"+
+      "评分明细:"+tallyTxt+"\n\n"+
+      "—— Reviewer 2 · 分院委员会";
+
+    sheet.innerHTML =
+      head("评议意见书 · 终审决定","状态: 已分院") +
+      '<div class="body">'+
+        '<div class="salute">分院决定</div>'+
+        '<div class="stamp-wrap"><div class="stamp">'+
+          '<div class="lbl">DOMINANT MODE</div>'+
+          '<div class="house">'+H[win].zh+'</div>'+
+          '<div class="en">'+H[win].en+'</div>'+
+        '</div></div>'+
+        '<p class="submode">这是你的主调,不是你的全部——下面是完整的谱</p>'+
+        '<div class="vbody">'+blend+'<p class="conc">'+conc+'</p></div>'+
+        '<div class="axes"><h4>把你拆成两根轴</h4>'+
+          '<div class="ax">'+a1+'</div>'+
+          '<div class="ax">'+a2+'</div>'+
+          plane+
+          '<p class="syn">'+syn+'</p>'+
+        '</div>'+
+        '<div class="vbody"><p class="risk">'+VERDICT[win].risk+'</p></div>'+
+        '<div class="tally"><h4>残差评分明细</h4>'+rows+'</div>'+
+        '<div class="sig">'+
+          '<div class="who"><b>评议人</b>Reviewer 2 · 分院委员会<br>(其余两位评审弃权)</div>'+
+          '<div class="nav" style="margin:0">'+
+            '<button class="btn ghost" id="again">重新评议</button>'+
+            '<button class="btn" id="copy">复制结论</button>'+
+          '</div>'+
+        '</div>'+
+        '<div class="share-hint">点\u201c复制结论\u201d拷走完整评议全文 · 想发同行,长按截图也稳</div>'+
+        '<textarea id="copytext" class="copytext" readonly></textarea>'+
+      '</div>'+
+      foot();
+
+    requestAnimationFrame(function(){
+      Array.prototype.forEach.call(sheet.querySelectorAll(".bar i"),function(el){
+        var w=el.style.width; el.style.width="0"; requestAnimationFrame(function(){el.style.width=w;});
+      });
+    });
+
+    document.getElementById("again").onclick=function(){
+      state={i:0,ans:new Array(QS.length).fill(null)};renderIntro();
+    };
+    var cta=document.getElementById("copytext");
+    cta.value=summary;
+    document.getElementById("copy").onclick=function(){
+      var btn=document.getElementById("copy");
+      function ok(){cta.style.display="none";btn.textContent="已复制全文";setTimeout(function(){btn.textContent="复制结论";},1600);}
+      function manual(){
+        cta.style.display="block";
+        try{cta.focus();cta.select();cta.setSelectionRange(0,summary.length);}catch(e){}
+        btn.textContent="请手动选择下方";setTimeout(function(){btn.textContent="复制结论";},2200);
+      }
+      function legacyCopy(){
+        try{
+          cta.style.display="block";
+          cta.focus();cta.select();cta.setSelectionRange(0,summary.length);
+          var done=document.execCommand("copy");
+          done?ok():manual();
+        }catch(e){manual();}
+      }
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(summary).then(ok,legacyCopy);
+      }else{legacyCopy();}
+    };
+  }
+
+  renderIntro();
+})();
+</script>
+</body>
+</html>
